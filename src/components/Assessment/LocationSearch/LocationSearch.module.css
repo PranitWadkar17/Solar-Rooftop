@@ -1,0 +1,333 @@
+.searchContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.searchHeader {
+  margin-bottom: 4px;
+}
+
+.searchTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.searchSubtitle {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+  margin: 6px 0 0;
+  line-height: 1.4;
+}
+
+.inputGroup {
+  display: flex;
+  gap: 8px;
+}
+
+.inputWrapper {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 12px;
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 10px 36px 10px 36px;
+  background: var(--color-bg-main);
+  border: 1.5px solid var(--color-border-subtle);
+  border-radius: 10px;
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.searchInput::placeholder {
+  color: var(--color-text-muted);
+}
+
+.searchInput:focus {
+  border-color: var(--color-solar);
+  box-shadow: 0 0 0 3px var(--color-solar-muted);
+}
+
+.clearBtn {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  transition: color 0.15s ease;
+}
+
+.clearBtn:hover {
+  color: var(--color-text-primary);
+}
+
+.searchBtn {
+  padding: 10px 18px;
+  background: var(--color-solar);
+  color: #000;
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.searchBtn:hover:not(:disabled) {
+  background: var(--color-solar-light);
+  transform: translateY(-1px);
+}
+
+.searchBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.locateBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--color-bg-card);
+  border: 1.5px solid var(--color-border-subtle);
+  border-radius: 8px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: fit-content;
+}
+
+.locateBtn:hover:not(:disabled) {
+  border-color: var(--color-solar);
+  color: var(--color-solar);
+  background: var(--color-solar-muted);
+}
+
+.locateBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Spinner */
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid transparent;
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Results */
+.results {
+  display: flex;
+  flex-direction: column;
+  border: 1.5px solid var(--color-border-subtle);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--color-bg-main);
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.resultItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--color-border-subtle);
+  cursor: pointer;
+  text-align: left;
+  color: var(--color-text-primary);
+  transition: background 0.15s ease;
+  font-family: inherit;
+}
+
+.resultItem:last-child {
+  border-bottom: none;
+}
+
+.resultItem:hover {
+  background: var(--color-bg-card-hover);
+}
+
+.resultIcon {
+  color: var(--color-solar);
+  flex-shrink: 0;
+}
+
+.resultContent {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.resultName {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.resultDetail {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.resultCoords {
+  font-size: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Error / Empty */
+.errorMsg {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 8px;
+  font-size: 12px;
+  color: #ef4444;
+}
+
+.emptyMsg {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 20px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+/* Autocomplete Suggestions Dropdown */
+.suggestionsDropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-card-solid);
+  border: 1.5px solid var(--color-border-subtle);
+  border-radius: 10px;
+  overflow: hidden;
+  max-height: 240px;
+  overflow-y: auto;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(16px);
+  animation: suggestFadeIn 0.15s ease;
+}
+
+@keyframes suggestFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.suggestionItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--color-border-subtle);
+  cursor: pointer;
+  text-align: left;
+  color: var(--color-text-primary);
+  transition: background 0.15s ease;
+  font-family: inherit;
+}
+
+.suggestionItem:last-child {
+  border-bottom: none;
+}
+
+.suggestionItem:hover {
+  background: var(--color-bg-card-hover);
+}
+
+.suggestionIcon {
+  color: var(--color-solar);
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.suggestionContent {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.suggestionName {
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.suggestionDetail {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+

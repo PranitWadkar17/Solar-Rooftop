@@ -1,0 +1,112 @@
+.section {
+  background-color: var(--color-bg-alt);
+  position: relative;
+  transition: background-color var(--duration-normal) var(--ease-out);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-6);
+}
+
+.grid > * {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 0.5s var(--ease-out), transform 0.5s var(--ease-out);
+}
+
+.grid.visible > * {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.card {
+  padding: var(--space-8);
+  background: var(--color-bg-card-solid);
+  border: var(--border-subtle);
+  border-radius: var(--radius-2xl);
+  transition: all var(--duration-normal) var(--ease-out);
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--color-solar), transparent);
+  opacity: 0;
+  transition: opacity var(--duration-normal) var(--ease-out);
+}
+
+.card:hover {
+  border-color: var(--color-border-hover);
+  box-shadow: var(--shadow-lg), 0 0 24px var(--color-solar-muted);
+  transform: translateY(-4px);
+}
+
+.card:hover::before {
+  opacity: 1;
+}
+
+.cardIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-xl);
+  background: var(--color-solar-muted);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  color: var(--color-solar);
+  margin-bottom: var(--space-5);
+  box-shadow: 0 0 16px var(--color-solar-muted);
+  transition: transform var(--duration-normal) var(--ease-spring);
+}
+
+.card:hover .cardIcon {
+  transform: scale(1.08);
+}
+
+.cardTitle {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-3);
+  letter-spacing: var(--tracking-tight);
+}
+
+.cardDesc {
+  font-size: var(--text-base);
+  line-height: var(--leading-relaxed);
+  color: var(--color-text-tertiary);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+  }
+
+  .card {
+    padding: var(--space-6);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grid > * {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .card:hover {
+    transform: none;
+  }
+}

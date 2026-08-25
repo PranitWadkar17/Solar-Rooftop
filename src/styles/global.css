@@ -1,0 +1,101 @@
+/* ============================================
+   SolarRoof Intelligence — Global Styles
+   ============================================ */
+
+@import './variables.css';
+@import './reset.css';
+
+body {
+  font-family: var(--font-primary);
+  font-size: var(--text-base);
+  font-weight: var(--weight-regular);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-main);
+  line-height: var(--leading-normal);
+  overflow-x: hidden;
+  text-rendering: optimizeLegibility;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: var(--navbar-height);
+  overflow-x: hidden;
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+::selection {
+  background-color: var(--color-solar-muted);
+  color: var(--color-solar);
+}
+
+/* ---- Layout Utilities ---- */
+.container {
+  width: 100%;
+  max-width: var(--container-max);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--space-6);
+  padding-right: var(--space-6);
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+  }
+}
+
+.container--narrow {
+  max-width: var(--container-narrow);
+}
+
+.container--wide {
+  max-width: var(--container-wide);
+}
+
+/* ---- Section Spacing ---- */
+.section {
+  padding-top: var(--space-20);
+  padding-bottom: var(--space-20);
+  contain: layout style;
+}
+
+@media (max-width: 1024px) {
+  .section {
+    padding-top: var(--space-16);
+    padding-bottom: var(--space-16);
+  }
+}
+
+@media (max-width: 640px) {
+  .section {
+    padding-top: var(--space-12);
+    padding-bottom: var(--space-12);
+  }
+}
+
+/* ---- Visually Hidden (Accessibility) ---- */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}

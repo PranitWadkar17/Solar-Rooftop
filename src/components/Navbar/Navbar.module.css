@@ -1,0 +1,300 @@
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: var(--z-navbar);
+  height: var(--navbar-height);
+  display: flex;
+  align-items: center;
+  transition: background-color var(--duration-normal) var(--ease-out),
+              border-color var(--duration-normal) var(--ease-out),
+              backdrop-filter var(--duration-normal) var(--ease-out);
+}
+
+.transparent {
+  background-color: rgba(7, 10, 18, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.solid {
+  background-color: rgba(7, 10, 18, 0.94);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 100%;
+}
+
+/* ---- Logo ---- */
+.logo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.logoIcon {
+  color: var(--color-text-primary);
+}
+
+.logoText {
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+  letter-spacing: var(--tracking-wide);
+}
+
+.logoAccent {
+  color: var(--color-solar);
+  font-weight: var(--weight-medium);
+}
+
+/* ---- Desktop Links ---- */
+.desktopLinks {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.navLink {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-secondary);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  transition: var(--transition-fast);
+  text-decoration: none;
+}
+
+.navLink:hover {
+  color: var(--color-text-primary);
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+/* ---- Desktop Actions ---- */
+.desktopActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.exploreLink {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-secondary);
+  transition: var(--transition-fast);
+  text-decoration: none;
+}
+
+.exploreLink:hover {
+  color: var(--color-text-primary);
+}
+
+.ctaButton {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: #070a12;
+  background: linear-gradient(135deg, var(--color-solar), var(--color-solar-light));
+  border: none;
+  padding: var(--space-2) var(--space-5);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--duration-normal) var(--ease-out);
+  letter-spacing: var(--tracking-wide);
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.25);
+}
+
+.ctaButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+}
+
+.ctaButton:active {
+  transform: translateY(0);
+}
+
+/* ---- Mobile Toggle ---- */
+.mobileToggle {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  width: 40px;
+  height: 40px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  transition: var(--transition-fast);
+}
+
+.mobileToggle:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+.hamburgerLine {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background-color: var(--color-text-primary);
+  border-radius: 1px;
+  transition: all var(--duration-normal) var(--ease-out);
+  transform-origin: center;
+}
+
+.mobileToggleOpen .hamburgerLine:nth-child(1) {
+  transform: rotate(45deg) translate(5px, 5px);
+}
+
+.mobileToggleOpen .hamburgerLine:nth-child(2) {
+  opacity: 0;
+  transform: scaleX(0);
+}
+
+.mobileToggleOpen .hamburgerLine:nth-child(3) {
+  transform: rotate(-45deg) translate(5px, -5px);
+}
+
+/* ---- Mobile Menu ---- */
+.mobileMenu {
+  position: fixed;
+  top: var(--navbar-height);
+  right: 0;
+  width: 300px;
+  max-width: 85vw;
+  height: calc(100vh - var(--navbar-height));
+  background-color: var(--color-bg-alt);
+  border-left: var(--border-subtle);
+  transform: translateX(100%);
+  transition: transform var(--duration-slow) var(--ease-out);
+  z-index: var(--z-overlay);
+  overflow-y: auto;
+  display: none;
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.5);
+}
+
+.mobileMenuOpen {
+  transform: translateX(0);
+}
+
+.mobileMenuInner {
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.mobileLink {
+  display: block;
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-secondary);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  transition: var(--transition-fast);
+}
+
+.mobileLink:hover {
+  color: var(--color-text-primary);
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+.mobileActions {
+  margin-top: var(--space-6);
+  padding-top: var(--space-6);
+  border-top: var(--border-subtle);
+}
+
+.mobileActions .ctaButton {
+  width: 100%;
+}
+
+/* ---- Overlay ---- */
+.overlay {
+  position: fixed;
+  inset: 0;
+  top: var(--navbar-height);
+  background-color: rgba(0, 0, 0, 0.6);
+  z-index: calc(var(--z-overlay) - 1);
+  backdrop-filter: blur(4px);
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 1024px) {
+  .desktopLinks,
+  .desktopActions {
+    display: none;
+  }
+
+  .mobileToggle {
+    display: flex;
+  }
+
+  .mobileMenu {
+    display: block;
+  }
+}
+
+/* ---- Mobile theme row ---- */
+.mobileThemeRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  margin-top: var(--space-3);
+  border-top: var(--border-subtle);
+  border-bottom: var(--border-subtle);
+}
+
+.mobileThemeLabel {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-secondary);
+}
+
+/* ---- Day Mode ---- */
+.dayMode.transparent {
+  background-color: rgba(255, 255, 255, 0.7);
+  border-bottom-color: rgba(0, 0, 0, 0.06);
+}
+
+.dayMode.solid {
+  background-color: rgba(255, 255, 255, 0.95);
+  border-bottom-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+}
+
+.dayMode .navLink:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.dayMode .ctaButton {
+  color: #1a1d23;
+}
+
+.dayMode .mobileMenu {
+  background-color: #ffffff;
+  border-left-color: rgba(0, 0, 0, 0.08);
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.1);
+}
+
+.dayMode .mobileLink:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.dayMode .overlay {
+  background-color: rgba(0, 0, 0, 0.3);
+}

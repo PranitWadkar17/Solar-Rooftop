@@ -1,0 +1,106 @@
+.section {
+  background-color: var(--color-bg-alt);
+  position: relative;
+  transition: background-color var(--duration-normal) var(--ease-out);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-5);
+}
+
+.grid > * {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 0.5s var(--ease-out), transform 0.5s var(--ease-out);
+}
+
+.grid.visible > * {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.category {
+  padding: var(--space-6);
+  background: var(--color-bg-card-solid);
+  border: var(--border-subtle);
+  border-radius: var(--radius-xl);
+  transition: all var(--duration-normal) var(--ease-out);
+  box-shadow: var(--shadow-sm);
+}
+
+.category:hover {
+  border-color: var(--color-border-hover);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+.categoryHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+
+.categoryIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-lg);
+  background: var(--color-solar-muted);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  color: var(--color-solar);
+  box-shadow: 0 0 12px var(--color-solar-muted);
+}
+
+.categoryTitle {
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.tag {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-secondary);
+  background: var(--color-bg-main);
+  border: var(--border-subtle);
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.category:hover .tag {
+  border-color: rgba(245, 158, 11, 0.2);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grid > * {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}

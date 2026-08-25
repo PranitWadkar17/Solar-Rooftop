@@ -1,0 +1,103 @@
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.stepper::-webkit-scrollbar {
+  display: none;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.circle {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  transition: color 0.3s ease;
+}
+
+.connector {
+  width: 32px;
+  height: 2px;
+  margin: 0 6px;
+  border-radius: 1px;
+  transition: background 0.3s ease;
+}
+
+/* Active */
+.active .circle {
+  background: var(--color-solar);
+  color: #000;
+  box-shadow: 0 0 12px var(--color-solar-glow), 0 0 24px var(--color-solar-glow);
+}
+
+.active .label {
+  color: var(--color-solar);
+}
+
+.active .connector {
+  background: linear-gradient(90deg, var(--color-solar), var(--color-border-subtle));
+}
+
+/* Completed */
+.completed .circle {
+  background: var(--color-green);
+  color: #fff;
+}
+
+.completed .label {
+  color: var(--color-green);
+}
+
+.completed .connector {
+  background: var(--color-green);
+}
+
+/* Upcoming */
+.upcoming .circle {
+  background: var(--color-bg-card);
+  color: var(--color-text-muted);
+  border: 1.5px solid var(--color-border-subtle);
+}
+
+.upcoming .label {
+  color: var(--color-text-muted);
+}
+
+.upcoming .connector {
+  background: var(--color-border-subtle);
+}
+
+@media (max-width: 768px) {
+  .label {
+    display: none;
+  }
+  .connector {
+    width: 20px;
+  }
+}

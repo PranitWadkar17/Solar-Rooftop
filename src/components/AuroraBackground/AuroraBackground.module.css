@@ -1,0 +1,207 @@
+.aurora {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  contain: layout style;
+}
+
+/* Night variant (Climate-Tech Solar + GIS Night Aura) */
+.night {
+  background-color: var(--color-bg-main);
+  --aurora-blob1: rgba(245, 158, 11, 0.22);
+  --aurora-blob2: rgba(14, 165, 233, 0.18);
+  --aurora-blob3: rgba(16, 185, 129, 0.14);
+  --aurora-pulse1: rgba(245, 158, 11, 0.10);
+  --aurora-pulse2: rgba(14, 165, 233, 0.08);
+}
+
+/* Day variant (Sunlit Atmosphere) */
+.day {
+  background-color: var(--color-bg-main);
+  --aurora-blob1: rgba(245, 158, 11, 0.12);
+  --aurora-blob2: rgba(16, 185, 129, 0.08);
+  --aurora-blob3: rgba(14, 165, 233, 0.06);
+  --aurora-pulse1: rgba(245, 158, 11, 0.06);
+  --aurora-pulse2: rgba(16, 185, 129, 0.04);
+}
+
+/* Solar variant (Intense Sunfire Aura) */
+.solar {
+  background-color: var(--color-bg-main);
+  --aurora-blob1: rgba(251, 191, 36, 0.25);
+  --aurora-blob2: rgba(245, 158, 11, 0.20);
+  --aurora-blob3: rgba(239, 68, 68, 0.15);
+  --aurora-pulse1: rgba(251, 191, 36, 0.12);
+  --aurora-pulse2: rgba(245, 158, 11, 0.08);
+}
+
+/* Ocean variant (Deep Marine & Teal Pulse) */
+.ocean {
+  background-color: var(--color-bg-main);
+  --aurora-blob1: rgba(56, 189, 248, 0.24);
+  --aurora-blob2: rgba(14, 165, 233, 0.18);
+  --aurora-blob3: rgba(99, 102, 241, 0.14);
+  --aurora-pulse1: rgba(56, 189, 248, 0.10);
+  --aurora-pulse2: rgba(14, 165, 233, 0.08);
+}
+
+/* Forest variant (Emerald Canopy & Jade) */
+.forest {
+  background-color: var(--color-bg-main);
+  --aurora-blob1: rgba(16, 185, 129, 0.24);
+  --aurora-blob2: rgba(5, 150, 105, 0.18);
+  --aurora-blob3: rgba(52, 211, 153, 0.14);
+  --aurora-pulse1: rgba(16, 185, 129, 0.10);
+  --aurora-pulse2: rgba(5, 150, 105, 0.08);
+}
+
+/* Layers container (strictly isolated for 0 CLS) */
+.layers {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  contain: strict;
+  transform: translateZ(0);
+}
+
+/* Pulsing gradient */
+.pulseGradient {
+  position: absolute;
+  inset: 0;
+  opacity: 0.6;
+  background-image:
+    radial-gradient(ellipse at 25% 20%, var(--aurora-pulse1) 0%, transparent 60%),
+    radial-gradient(ellipse at 75% 75%, var(--aurora-pulse2) 0%, transparent 60%);
+  background-size: 100% 100%;
+  animation: auroraPulse 12s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+@keyframes auroraPulse {
+  0%, 100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(1.03);
+  }
+}
+
+/* Blob container */
+.blobContainer {
+  position: absolute;
+  inset: 0;
+  mix-blend-mode: screen;
+}
+
+.day .blobContainer {
+  mix-blend-mode: multiply;
+  opacity: 0.6;
+}
+
+/* Individual GPU-accelerated blobs */
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+.blob1 {
+  top: -10%;
+  left: -5%;
+  width: 50vw;
+  height: 50vw;
+  max-width: 650px;
+  max-height: 650px;
+  background-color: var(--aurora-blob1);
+  animation: floatBlob1 24s ease-in-out infinite alternate;
+}
+
+.blob2 {
+  bottom: -15%;
+  right: -5%;
+  width: 50vw;
+  height: 50vw;
+  max-width: 650px;
+  max-height: 650px;
+  background-color: var(--aurora-blob2);
+  animation: floatBlob2 32s ease-in-out infinite alternate;
+}
+
+.blob3 {
+  top: 35%;
+  left: 35%;
+  width: 38vw;
+  height: 38vw;
+  max-width: 500px;
+  max-height: 500px;
+  background-color: var(--aurora-blob3);
+  animation: floatBlob3 40s ease-in-out infinite alternate;
+}
+
+@keyframes floatBlob1 {
+  0% { transform: translate3d(-30px, -20px, 0) scale(1); }
+  50% { transform: translate3d(40px, 25px, 0) scale(1.12); }
+  100% { transform: translate3d(-20px, 30px, 0) scale(0.95); }
+}
+
+@keyframes floatBlob2 {
+  0% { transform: translate3d(30px, 20px, 0) scale(1); }
+  50% { transform: translate3d(-40px, -30px, 0) scale(1.15); }
+  100% { transform: translate3d(20px, -15px, 0) scale(0.98); }
+}
+
+@keyframes floatBlob3 {
+  0% { transform: translate3d(0, 0, 0) scale(1) rotate(0deg); }
+  50% { transform: translate3d(-25px, 30px, 0) scale(1.1) rotate(180deg); }
+  100% { transform: translate3d(30px, -20px, 0) scale(0.92) rotate(360deg); }
+}
+
+/* Ambient celestial stars grid */
+.stars {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 15% 25%, rgba(255, 255, 255, 0.8) 1px, transparent 1px),
+    radial-gradient(circle at 75% 15%, rgba(255, 255, 255, 0.7) 1px, transparent 1px),
+    radial-gradient(circle at 35% 65%, rgba(245, 158, 11, 0.6) 1.5px, transparent 1.5px),
+    radial-gradient(circle at 85% 75%, rgba(56, 189, 248, 0.7) 1px, transparent 1px),
+    radial-gradient(circle at 55% 45%, rgba(255, 255, 255, 0.6) 1px, transparent 1px),
+    radial-gradient(circle at 25% 85%, rgba(255, 255, 255, 0.5) 1px, transparent 1px),
+    radial-gradient(circle at 65% 90%, rgba(245, 158, 11, 0.7) 1px, transparent 1px);
+  background-size: 550px 550px;
+  opacity: 0.6;
+}
+
+.day .stars {
+  opacity: 0.25;
+  background-image:
+    radial-gradient(circle at 15% 25%, rgba(217, 119, 6, 0.6) 1.5px, transparent 1.5px),
+    radial-gradient(circle at 75% 15%, rgba(2, 132, 199, 0.6) 1.5px, transparent 1.5px);
+}
+
+/* Content */
+.content {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .pulseGradient,
+  .blob1,
+  .blob2,
+  .blob3 {
+    animation: none;
+  }
+}

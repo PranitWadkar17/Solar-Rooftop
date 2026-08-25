@@ -1,0 +1,323 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  background: var(--color-bg-card);
+  border: var(--border-subtle);
+  border-radius: 14px;
+  backdrop-filter: blur(12px);
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.panelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.panelTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.confirmedBadge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-green);
+  background: var(--color-green-muted);
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+/* Sections */
+.sectionCard {
+  background: var(--color-bg-main);
+  border: var(--border-subtle);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sectionHeader {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-tertiary);
+}
+
+.buildingSectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2px;
+}
+
+.buildingActiveCard {
+  border-color: rgba(245, 158, 11, 0.35);
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.06) 0%, var(--color-bg-main) 100%);
+}
+
+.buildingPendingCard {
+  border-style: dashed;
+}
+
+.statusSelectedBadge {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-solar);
+  background: var(--color-solar-muted);
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.statusPendingBadge {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+/* Info Grid */
+.infoGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.infoRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.infoLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+  padding-top: 1px;
+}
+
+.infoValue {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  text-align: right;
+  word-break: break-word;
+  line-height: 1.35;
+}
+
+.areaHighlight {
+  color: var(--color-solar) !important;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.areaHighlight strong {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.subArea {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+}
+
+.mono {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+
+.subtleMono {
+  font-size: 10px;
+  color: var(--color-text-muted);
+}
+
+.selectionActionsRow {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--color-border-subtle);
+}
+
+.changeSelectionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: 1px solid var(--color-border-subtle);
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.changeSelectionBtn:hover {
+  border-color: var(--color-solar);
+  color: var(--color-solar);
+}
+
+/* No building prompt & manual draw */
+.noBuildingContent {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.noBuildingPrompt {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.manualDrawBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--color-bg-card);
+  border: 1.5px dashed var(--color-solar);
+  color: var(--color-solar);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.manualDrawBtn:hover {
+  background: var(--color-solar-muted);
+}
+
+.manualDrawActive {
+  background: var(--color-solar) !important;
+  color: #000 !important;
+  border-style: solid !important;
+}
+
+/* Reference Row */
+.refRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+  font-size: 11px;
+}
+
+.refLabel {
+  color: var(--color-text-muted);
+}
+
+.assessmentId {
+  color: var(--color-solar);
+  font-weight: 600;
+}
+
+/* Actions */
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 4px;
+  border-top: var(--border-subtle);
+}
+
+.changeBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 16px;
+  background: var(--color-bg-card);
+  border: 1.5px solid var(--color-border-subtle);
+  border-radius: 10px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.changeBtn:hover {
+  border-color: var(--color-solar);
+  color: var(--color-solar);
+  background: var(--color-solar-muted);
+}
+
+.confirmBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 20px;
+  background: var(--color-solar);
+  border: none;
+  border-radius: 10px;
+  color: #000;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  font-family: inherit;
+}
+
+.confirmBtn:hover:not(:disabled) {
+  background: var(--color-solar-light);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px var(--color-solar-glow);
+}
+
+.confirmBtn:disabled {
+  cursor: default;
+}
+
+.confirmedBtn {
+  background: var(--color-green) !important;
+  color: #fff !important;
+}
+
+.confirmedBtn:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}

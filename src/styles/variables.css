@@ -1,0 +1,237 @@
+/* ============================================
+   SolarRoof Intelligence — Unified Design Tokens
+   Default is NIGHT mode. [data-theme="day"] is DAY mode.
+   ============================================ */
+
+:root {
+  /* ---- Theme Mode: NIGHT (Default - Climate-Tech Obsidian & Solar Amber) ---- */
+  --color-bg-main:        #070a12;
+  --color-bg-alt:         #0c101c;
+  --color-bg-card:        rgba(17, 23, 38, 0.85);
+  --color-bg-card-solid:  #111726;
+  --color-bg-card-hover:  #162035;
+  --color-bg-badge:       rgba(245, 158, 11, 0.12);
+
+  --color-surface:        #070a12;
+  --color-surface-alt:    #0c101c;
+  --color-surface-card:   #111726;
+  --color-surface-card-alt: #0e1422;
+
+  --color-charcoal:       #070a12;
+  --color-charcoal-light: #0f1523;
+  --color-slate:          #162032;
+
+  /* ---- Borders ---- */
+  --border-subtle:        1px solid rgba(255, 255, 255, 0.07);
+  --border-light:         1px solid rgba(255, 255, 255, 0.10);
+  --border-medium:        1px solid rgba(255, 255, 255, 0.15);
+  --border-accent:        1px solid rgba(245, 158, 11, 0.3);
+  --color-border-subtle:  rgba(255, 255, 255, 0.08);
+  --color-border-card:    rgba(255, 255, 255, 0.08);
+  --color-border-hover:   rgba(245, 158, 11, 0.35);
+
+  /* ---- Text: Night Mode ---- */
+  --color-text-primary:   #f8fafc;
+  --color-text-secondary: #cbd5e1;
+  --color-text-tertiary:  #94a3b8;
+  --color-text-muted:     #64748b;
+  --color-text-inverse:   #f8fafc;
+  --color-text-inverse-secondary: rgba(248, 250, 252, 0.75);
+  --color-text-inverse-tertiary:  rgba(248, 250, 252, 0.48);
+
+  /* ---- Brand Accents (Solar Photovoltaic & Geospatial) ---- */
+  --color-solar:          #f59e0b;
+  --color-solar-light:    #fbbf24;
+  --color-solar-dark:     #d97706;
+  --color-solar-muted:    rgba(245, 158, 11, 0.14);
+  --color-solar-glow:     rgba(245, 158, 11, 0.25);
+
+  --color-green:          #10b981;
+  --color-green-light:    #34d399;
+  --color-green-dark:     #059669;
+  --color-green-muted:    rgba(16, 185, 129, 0.12);
+  --color-green-glow:     rgba(16, 185, 129, 0.22);
+
+  --color-blue:           #38bdf8;
+  --color-blue-light:     #60a5fa;
+  --color-blue-dark:      #0284c7;
+  --color-blue-muted:     rgba(56, 189, 248, 0.12);
+  --color-blue-glow:      rgba(56, 189, 248, 0.22);
+
+  /* ---- Semantic Colors ---- */
+  --color-success:        #10b981;
+  --color-warning:        #f59e0b;
+  --color-error:          #ef4444;
+  --color-info:           #38bdf8;
+
+  /* ---- Typography: Families ---- */
+  --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono:    'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+
+  /* ---- Typography: Sizes ---- */
+  --text-xs:    0.75rem;    /* 12px */
+  --text-sm:    0.875rem;   /* 14px */
+  --text-base:  1rem;       /* 16px */
+  --text-md:    1.125rem;   /* 18px */
+  --text-lg:    1.25rem;    /* 20px */
+  --text-xl:    1.5rem;     /* 24px */
+  --text-2xl:   1.875rem;   /* 30px */
+  --text-3xl:   2.25rem;    /* 36px */
+  --text-4xl:   2.75rem;    /* 44px */
+  --text-5xl:   3.5rem;     /* 56px */
+  --text-6xl:   4.25rem;    /* 68px */
+
+  /* ---- Typography: Weights ---- */
+  --weight-regular:  400;
+  --weight-medium:   500;
+  --weight-semibold: 600;
+  --weight-bold:     700;
+
+  /* ---- Typography: Line Heights ---- */
+  --leading-tight:   1.15;
+  --leading-snug:    1.3;
+  --leading-normal:  1.5;
+  --leading-relaxed: 1.65;
+
+  /* ---- Typography: Letter Spacing ---- */
+  --tracking-tight:  -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide:   0.02em;
+  --tracking-wider:  0.05em;
+  --tracking-widest: 0.1em;
+
+  /* ---- Spacing (4px base) ---- */
+  --space-0:   0;
+  --space-1:   0.25rem;
+  --space-2:   0.5rem;
+  --space-3:   0.75rem;
+  --space-4:   1rem;
+  --space-5:   1.25rem;
+  --space-6:   1.5rem;
+  --space-8:   2rem;
+  --space-10:  2.5rem;
+  --space-12:  3rem;
+  --space-14:  3.5rem;
+  --space-16:  4rem;
+  --space-20:  5rem;
+  --space-24:  6rem;
+  --space-32:  8rem;
+
+  /* ---- Layout ---- */
+  --container-max:    1280px;
+  --container-narrow: 960px;
+  --container-wide:   1440px;
+  --navbar-height:    72px;
+
+  /* ---- Border Radius ---- */
+  --radius-xs:   4px;
+  --radius-sm:   6px;
+  --radius-md:   8px;
+  --radius-lg:   12px;
+  --radius-xl:   16px;
+  --radius-2xl:  24px;
+  --radius-full: 9999px;
+
+  /* ---- Shadows & Glass ---- */
+  --shadow-xs:   0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-sm:   0 2px 4px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md:   0 4px 12px rgba(0, 0, 0, 0.5), 0 2px 4px rgba(0, 0, 0, 0.3);
+  --shadow-lg:   0 12px 28px rgba(0, 0, 0, 0.6), 0 4px 8px rgba(0, 0, 0, 0.4);
+  --shadow-xl:   0 24px 48px rgba(0, 0, 0, 0.7), 0 8px 16px rgba(0, 0, 0, 0.5);
+  --shadow-glow-solar: 0 0 24px rgba(245, 158, 11, 0.2);
+  --shadow-glow-green: 0 0 24px rgba(16, 185, 129, 0.2);
+  --shadow-glow-blue:  0 0 24px rgba(56, 189, 248, 0.2);
+
+  /* ---- Transitions ---- */
+  --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  --duration-fast:   150ms;
+  --duration-normal: 250ms;
+  --duration-slow:   400ms;
+  --duration-slower: 600ms;
+
+  --transition-fast:   all 150ms cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-normal: all 250ms cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-slow:   all 400ms cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-color:  color 250ms ease, background-color 250ms ease, border-color 250ms ease;
+
+  /* ---- Z-Index Scale ---- */
+  --z-base:     1;
+  --z-dropdown: 100;
+  --z-sticky:   200;
+  --z-navbar:   500;
+  --z-overlay:  900;
+  --z-modal:    1000;
+}
+
+/* ============================================
+   DAY THEME OVERRIDES (Clean, Sustainable, Professional)
+   ============================================ */
+
+[data-theme="day"] {
+  /* Surfaces */
+  --color-bg-main:        #ffffff;
+  --color-bg-alt:         #f8fafc;
+  --color-bg-card:        #ffffff;
+  --color-bg-card-solid:  #ffffff;
+  --color-bg-card-hover:  #f8fafc;
+  --color-bg-badge:       rgba(245, 158, 11, 0.12);
+
+  --color-surface:        #ffffff;
+  --color-surface-alt:    #f8fafc;
+  --color-surface-card:   #ffffff;
+  --color-surface-card-alt: #f1f5f9;
+
+  --color-charcoal:       #f8fafc;
+  --color-charcoal-light: #f1f5f9;
+  --color-slate:          #e2e8f0;
+
+  /* Borders */
+  --border-subtle:        1px solid rgba(0, 0, 0, 0.06);
+  --border-light:         1px solid rgba(0, 0, 0, 0.08);
+  --border-medium:        1px solid rgba(0, 0, 0, 0.12);
+  --border-accent:        1px solid rgba(217, 119, 6, 0.25);
+  --color-border-subtle:  rgba(0, 0, 0, 0.06);
+  --color-border-card:    rgba(0, 0, 0, 0.07);
+  --color-border-hover:   rgba(217, 119, 6, 0.35);
+
+  /* Text */
+  --color-text-primary:   #0f172a;
+  --color-text-secondary: #334155;
+  --color-text-tertiary:  #64748b;
+  --color-text-muted:     #94a3b8;
+  --color-text-inverse:   #0f172a;
+  --color-text-inverse-secondary: #334155;
+  --color-text-inverse-tertiary:  #64748b;
+
+  /* Brand Accents adjusted for light readability */
+  --color-solar:          #d97706;
+  --color-solar-light:    #f59e0b;
+  --color-solar-dark:     #b45309;
+  --color-solar-muted:    rgba(217, 119, 6, 0.12);
+  --color-solar-glow:     rgba(217, 119, 6, 0.15);
+
+  --color-green:          #059669;
+  --color-green-light:    #10b981;
+  --color-green-dark:     #047857;
+  --color-green-muted:    rgba(5, 150, 105, 0.10);
+
+  --color-blue:           #0284c7;
+  --color-blue-light:     #38bdf8;
+  --color-blue-dark:      #0369a1;
+  --color-blue-muted:     rgba(2, 132, 199, 0.10);
+
+  /* Shadows for day */
+  --shadow-xs:   0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm:   0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md:   0 4px 6px rgba(0, 0, 0, 0.05), 0 2px 4px rgba(0, 0, 0, 0.04);
+  --shadow-lg:   0 10px 15px rgba(0, 0, 0, 0.06), 0 4px 6px rgba(0, 0, 0, 0.04);
+  --shadow-xl:   0 20px 25px rgba(0, 0, 0, 0.08), 0 8px 10px rgba(0, 0, 0, 0.04);
+}
+
+/* Theme transition */
+html, body {
+  transition: background-color 0.4s ease, color 0.4s ease;
+}

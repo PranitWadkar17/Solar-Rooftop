@@ -1,0 +1,130 @@
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  padding: 0 20px;
+  background: var(--color-bg-card-solid);
+  border-bottom: var(--border-subtle);
+  backdrop-filter: blur(16px);
+  z-index: 100;
+  flex-shrink: 0;
+}
+
+.left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+.logoBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-primary);
+  padding: 4px;
+  border-radius: 8px;
+  transition: opacity 0.2s ease;
+}
+
+.logoBtn:hover {
+  opacity: 0.85;
+}
+
+.logoText {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--color-text-primary);
+}
+
+.logoAccent {
+  color: var(--color-solar);
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.breadcrumbLink {
+  cursor: pointer;
+  color: var(--color-text-tertiary);
+  transition: color 0.15s ease;
+}
+
+.breadcrumbLink:hover {
+  color: var(--color-solar);
+}
+
+.breadcrumbCurrent {
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+
+.center {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.assessmentBadge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.04em;
+  color: var(--color-solar);
+  background: var(--color-solar-muted);
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+.badgeDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-solar);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@media (max-width: 900px) {
+  .breadcrumb {
+    display: none;
+  }
+  .center {
+    display: none;
+  }
+  .header {
+    padding: 0 12px;
+  }
+}
+
+@media (max-width: 600px) {
+  .assessmentBadge {
+    display: none;
+  }
+}
