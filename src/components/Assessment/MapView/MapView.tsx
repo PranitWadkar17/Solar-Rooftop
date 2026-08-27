@@ -109,8 +109,6 @@ interface MapViewProps {
   buildings: BuildingFootprint[];
   selectedBuildingId: string | null;
   onBuildingClick: (building: BuildingFootprint) => void;
-  onLocateUser: () => void;
-  isLocating: boolean;
   isDrawingMode: boolean;
   onToggleDrawingMode: () => void;
   onCustomBuildingCreated: (building: BuildingFootprint) => void;
@@ -127,8 +125,6 @@ export function MapView({
   buildings,
   selectedBuildingId,
   onBuildingClick,
-  onLocateUser,
-  isLocating,
   isDrawingMode,
   onToggleDrawingMode,
   onCustomBuildingCreated,
@@ -510,35 +506,6 @@ export function MapView({
             </svg>
           </button>
         </div>
-
-        {/* Recenter */}
-        <button
-          className={`${styles.controlBtn} ${styles.singleControl}`}
-          onClick={() => {
-            if (selectedLat !== null && selectedLng !== null) {
-              // Recenter to selected location
-              const mapEl = document.querySelector('.leaflet-container');
-              if (mapEl) {
-                const mapInstance = (mapEl as HTMLElement & { _leaflet_map?: L.Map })._leaflet_map;
-                mapInstance?.flyTo([selectedLat, selectedLng], Math.max(mapInstance.getZoom(), 18), { duration: 1 });
-              }
-            } else {
-              // Fall back to geolocating
-              onLocateUser();
-            }
-          }}
-          disabled={isLocating}
-          title={selectedLat !== null ? 'Recenter map' : 'Use my location'}
-          aria-label="Recenter map"
-        >
-          {isLocating ? (
-            <span className={styles.spinner} />
-          ) : (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2v4M12 18v4M2 12h4M18 12h4" /><circle cx="12" cy="12" r="4" />
-            </svg>
-          )}
-        </button>
       </div>
 
       {/* Satellite unavailable notice */}

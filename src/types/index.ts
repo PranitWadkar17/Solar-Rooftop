@@ -127,3 +127,46 @@ export interface AssessmentState {
 }
 
 export type ThemeName = 'night' | 'day';
+
+// --- Phase 3 Re-exports ---
+export type {
+  RoofClassification,
+  ObstacleType,
+  ObstacleGeometryKind,
+  ObstacleSource,
+  ObstacleStatus,
+  ConfidenceLevel,
+  DataSource,
+  AreaUnit,
+  Obstacle,
+  RoofSection,
+  Rooftop,
+  AreaBreakdown,
+  GeometryValidationResult,
+  ObstacleCategoryDef,
+  RooftopToolMode,
+  RooftopWorkspaceState,
+} from './rooftop.js';
+
+export { ROOF_CLASSIFICATION_LABELS } from './rooftop.js';
+
+// --- Phase 4 Re-exports ---
+export type {
+  SolarPotentialClassification,
+  SolarAnalysisStatus,
+  SolarVisualizationLayer,
+  AnalysisPeriodMode,
+  SolarAreaToolMode,
+  SelectionMethod,
+  SunPosition,
+  MonthlySolarData,
+  SolarResourceData,
+  SolarIrradianceZone,
+  ProjectedShadow,
+  ShadingSourceBreakdown,
+  SectionSolarMetric,
+  SelectedSolarArea,
+  SolarAssumptions,
+  SolarAnalysis,
+  SolarTimelineState,
+} from './solar.js';

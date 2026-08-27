@@ -1,0 +1,169 @@
+.header {
+  height: 64px;
+  background: var(--color-bg-card-solid);
+  border-bottom: var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  position: relative;
+  z-index: 500;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-sm);
+}
+
+.left {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.backBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--color-bg-main);
+  border: 1px solid var(--color-border-subtle);
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.backBtn:hover {
+  border-color: var(--color-solar);
+  color: var(--color-solar);
+  background: var(--color-solar-muted);
+  transform: translateX(-2px);
+}
+
+.logoBtn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  color: var(--color-text-primary);
+  font-family: inherit;
+}
+
+.logoText {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.logoAccent {
+  color: var(--color-solar);
+}
+
+.center {
+  display: flex;
+  align-items: center;
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* Save status badge */
+.saveBadge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  transition: all 0.25s ease;
+}
+
+.saveBadge.saved {
+  background: rgba(16, 185, 129, 0.12);
+  color: var(--color-green);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.saveBadge.saved .saveDot {
+  background: var(--color-green);
+}
+
+.saveBadge.saving {
+  background: rgba(245, 158, 11, 0.14);
+  color: var(--color-solar);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.saveBadge.saving .saveDot {
+  background: var(--color-solar);
+  animation: pulseSave 1s ease-in-out infinite;
+}
+
+.saveBadge.unsaved {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.saveBadge.unsaved .saveDot {
+  background: #ef4444;
+}
+
+.saveDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+@keyframes pulseSave {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.3; transform: scale(0.8); }
+}
+
+.assessmentBadge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--color-bg-badge);
+  border: 1px solid var(--color-border-card);
+  border-radius: 6px;
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+  color: var(--color-solar);
+  letter-spacing: 0.05em;
+}
+
+.badgeDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-solar);
+}
+
+@media (max-width: 900px) {
+  .header {
+    padding: 0 12px;
+    height: 56px;
+  }
+  .center {
+    display: none;
+  }
+  .logoText {
+    display: none;
+  }
+  .backBtn span {
+    display: none;
+  }
+}

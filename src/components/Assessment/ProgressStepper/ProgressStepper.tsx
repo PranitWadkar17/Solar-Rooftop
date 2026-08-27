@@ -8,9 +8,9 @@ interface Step {
 const STEPS: Step[] = [
   { number: 1, label: 'Location' },
   { number: 2, label: 'Rooftop' },
-  { number: 3, label: 'Analysis' },
-  { number: 4, label: 'Results' },
-  { number: 5, label: 'Report' },
+  { number: 3, label: 'Solar' },
+  { number: 4, label: 'Optimization' },
+  { number: 5, label: 'Results' },
 ];
 
 interface ProgressStepperProps {

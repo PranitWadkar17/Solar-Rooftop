@@ -214,8 +214,6 @@ function AssessmentWorkspaceInner() {
             buildings={state.nearbyBuildings}
             selectedBuildingId={state.selectedBuildingId}
             onBuildingClick={handleBuildingClick}
-            onLocateUser={handleUseMyLocation}
-            isLocating={isLocating}
             isDrawingMode={isDrawingMode}
             onToggleDrawingMode={handleToggleDrawingMode}
             onCustomBuildingCreated={handleCustomBuildingCreated}

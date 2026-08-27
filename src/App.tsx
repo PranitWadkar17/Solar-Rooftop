@@ -2,6 +2,8 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { LandingPage } from './pages/LandingPage';
 import { AssessmentWorkspace } from './pages/AssessmentWorkspace/AssessmentWorkspace';
 import { RooftopPage } from './pages/RooftopPage/RooftopPage';
+import { SolarPage } from './pages/SolarPage/SolarPage';
+import { OptimizationPage } from './pages/OptimizationPage/OptimizationPage';
 import { useTheme } from './hooks/useTheme';
 import { createContext } from 'react';
 import type { Theme } from './hooks/useTheme';
@@ -24,6 +26,8 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/assessment" element={<AssessmentWorkspace />} />
           <Route path="/assessment/rooftop" element={<RooftopPage />} />
+          <Route path="/assessment/solar" element={<SolarPage />} />
+          <Route path="/assessment/optimization" element={<OptimizationPage />} />
         </Routes>
       </BrowserRouter>
     </ThemeContext.Provider>

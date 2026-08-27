@@ -1,131 +1,164 @@
+import { useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { loadAssessment } from '@/services/assessmentService';
-import { formatArea } from '@/utils/geoUtils';
-import { AssessmentHeader } from '@/components/Assessment/AssessmentHeader/AssessmentHeader';
+import { loadRooftop, deriveRooftopFromAssessment, saveRooftop } from '@/services/rooftopService';
+import { RooftopProvider, useRooftop } from '@/context/RooftopContext';
+import { RooftopHeader } from '@/components/Rooftop/RooftopHeader/RooftopHeader';
+import { RooftopSidebar } from '@/components/Rooftop/RooftopSidebar/RooftopSidebar';
+import { RooftopMap, type ActiveObstacleConfig } from '@/components/Rooftop/RooftopMap/RooftopMap';
+import { AddObstacleModal } from '@/components/Rooftop/AddObstacleModal/AddObstacleModal';
+import { FirstTimeGuidance } from '@/components/Rooftop/FirstTimeGuidance/FirstTimeGuidance';
+import { UnsavedChangesModal } from '@/components/Rooftop/UnsavedChangesModal/UnsavedChangesModal';
+import type { ObstacleType, ObstacleGeometryKind, Rooftop } from '@/types/rooftop.js';
 import styles from './RooftopPage.module.css';
+
+function RooftopWorkspaceInner() {
+  const navigate = useNavigate();
+  const { state, dispatch } = useRooftop();
+  const { rooftop, isDirty, saveStatus, showFirstTimeGuide } = state;
+
+  const [showAddObstacleModal, setShowAddObstacleModal] = useState(false);
+  const [showUnsavedModal, setShowUnsavedModal] = useState(false);
+  const [activeObstacleConfig, setActiveObstacleConfig] = useState<ActiveObstacleConfig | null>(null);
+
+  // Handle Back Navigation with unsaved changes protection
+  const handleBackClick = useCallback(() => {
+    if (isDirty) {
+      setShowUnsavedModal(true);
+    } else {
+      navigate('/assessment');
+    }
+  }, [isDirty, navigate]);
+
+  const handleSaveAndLeave = useCallback(() => {
+    if (rooftop) {
+      saveRooftop(rooftop);
+    }
+    setShowUnsavedModal(false);
+    navigate('/assessment');
+  }, [rooftop, navigate]);
+
+  const handleDiscardAndLeave = useCallback(() => {
+    setShowUnsavedModal(false);
+    navigate('/assessment');
+  }, [navigate]);
+
+  // Handle Redraw Boundary
+  const handleRedrawBoundary = useCallback(() => {
+    dispatch({ type: 'CLEAR_DRAWING_POINTS' });
+    dispatch({ type: 'SET_TOOL_MODE', payload: 'draw_roof' });
+  }, [dispatch]);
+
+  // Handle Add Obstacle modal submit -> trigger drawing tool
+  const handleStartDrawingObstacle = useCallback(
+    (type: ObstacleType, geometryKind: ObstacleGeometryKind, clearance: number, height: number | null) => {
+      setShowAddObstacleModal(false);
+      setActiveObstacleConfig({ type, geometryKind, clearance, height });
+      dispatch({ type: 'CLEAR_DRAWING_POINTS' });
+
+      if (geometryKind === 'point') {
+        dispatch({ type: 'SET_TOOL_MODE', payload: 'draw_obstacle_point' });
+      } else if (geometryKind === 'rectangle') {
+        dispatch({ type: 'SET_TOOL_MODE', payload: 'draw_obstacle_rect' });
+      } else {
+        dispatch({ type: 'SET_TOOL_MODE', payload: 'draw_obstacle_polygon' });
+      }
+    },
+    [dispatch]
+  );
+
+  // Proceed to Phase 4
+  const handleProceedToSolar = useCallback(() => {
+    if (rooftop) {
+      saveRooftop(rooftop);
+    }
+    navigate('/assessment/solar');
+  }, [rooftop, navigate]);
+
+  return (
+    <div className={styles.workspace}>
+      <RooftopHeader
+        assessmentId={rooftop?.assessmentId ?? null}
+        saveStatus={saveStatus}
+        onBackClick={handleBackClick}
+      />
+
+      <main className={styles.mainArea}>
+        {/* Left Sidebar */}
+        <RooftopSidebar
+          onOpenAddObstacle={() => setShowAddObstacleModal(true)}
+          onRedrawBoundary={handleRedrawBoundary}
+          onProceedToSolar={handleProceedToSolar}
+        />
+
+        {/* Right Map View */}
+        <div className={styles.mapWrapper}>
+          <RooftopMap
+            onOpenAddObstacleModal={() => setShowAddObstacleModal(true)}
+            activeObstacleConfig={activeObstacleConfig}
+            setActiveObstacleConfig={setActiveObstacleConfig}
+          />
+        </div>
+      </main>
+
+      {/* Add Obstacle Modal */}
+      {showAddObstacleModal && (
+        <AddObstacleModal
+          onStartDrawing={handleStartDrawingObstacle}
+          onCancel={() => setShowAddObstacleModal(false)}
+        />
+      )}
+
+      {/* First Time Guidance Modal */}
+      {showFirstTimeGuide && (
+        <FirstTimeGuidance onDismiss={() => dispatch({ type: 'DISMISS_GUIDE' })} />
+      )}
+
+      {/* Unsaved Changes Confirmation Modal */}
+      {showUnsavedModal && (
+        <UnsavedChangesModal
+          onSaveAndLeave={handleSaveAndLeave}
+          onDiscardAndLeave={handleDiscardAndLeave}
+          onCancel={() => setShowUnsavedModal(false)}
+        />
+      )}
+    </div>
+  );
+}
 
 export function RooftopPage() {
   const navigate = useNavigate();
   const assessment = loadAssessment();
 
-  const areaFormatted = assessment?.selectedBuildingArea ? formatArea(assessment.selectedBuildingArea) : null;
+  // Load or derive initial rooftop
+  const initialRooftop: Rooftop | null = useMemo(() => {
+    if (!assessment || !assessment.assessmentId) return null;
+    const existing = loadRooftop(assessment.assessmentId);
+    if (existing) return existing;
+    return deriveRooftopFromAssessment(assessment);
+  }, [assessment]);
+
+  // If no valid assessment or site not chosen
+  if (!assessment || !assessment.assessmentId || (!assessment.selectedBuildingGeometry && assessment.selectedLatitude === null)) {
+    return (
+      <div className={styles.notFoundPage}>
+        <div className={styles.notFoundCard}>
+          <div className={styles.notFoundIcon}>📍</div>
+          <h2 className={styles.notFoundTitle}>Assessment Not Found</h2>
+          <p className={styles.notFoundText}>
+            No confirmed location or rooftop building was found in your active session. Please start by searching and selecting your site on the map.
+          </p>
+          <button className={styles.returnBtn} onClick={() => navigate('/assessment')}>
+            Return to Location Selection
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className={styles.page}>
-      <AssessmentHeader currentStep={2} assessmentId={assessment?.assessmentId ?? null} />
-
-      <main className={styles.container}>
-        <div className={styles.contentCard}>
-          <div className={styles.statusBadge}>
-            <span className={styles.statusDot} aria-hidden="true" />
-            Phase 2 Complete — Site & Rooftop Confirmed
-          </div>
-
-          <h1 className={styles.title}>Rooftop Segmentation & Solar Analysis</h1>
-          <p className={styles.subtitle}>
-            Your rooftop boundary and site metadata have been verified. The 3D surface mesh and irradiance engines will be activated in Phase 3.
-          </p>
-
-          {/* Confirmed Data Display */}
-          <div className={styles.dataGrid}>
-            <div className={styles.dataCard}>
-              <span className={styles.dataLabel}>Assessment Reference</span>
-              <span className={`${styles.dataValue} ${styles.mono} ${styles.highlight}`}>
-                {assessment?.assessmentId || 'Not Generated'}
-              </span>
-            </div>
-
-            <div className={styles.dataCard}>
-              <span className={styles.dataLabel}>Selected Coordinates</span>
-              <span className={`${styles.dataValue} ${styles.mono}`}>
-                {assessment?.selectedLatitude !== null && assessment?.selectedLongitude !== null
-                  ? `${assessment?.selectedLatitude?.toFixed(6)}, ${assessment?.selectedLongitude?.toFixed(6)}`
-                  : 'None Selected'}
-              </span>
-            </div>
-
-            <div className={`${styles.dataCard} ${styles.fullWidth}`}>
-              <span className={styles.dataLabel}>Site Address</span>
-              <span className={styles.dataValue}>
-                {assessment?.selectedAddress || 'Custom Selected Point'}
-              </span>
-            </div>
-
-            <div className={styles.dataCard}>
-              <span className={styles.dataLabel}>Building Identification</span>
-              <span className={`${styles.dataValue} ${assessment?.selectedBuildingId ? styles.success : ''}`}>
-                {assessment?.selectedBuildingId
-                  ? (assessment.selectedBuildingIsManual
-                      ? '✏️ User-Drawn Custom Polygon'
-                      : `✓ ${assessment.selectedBuildingName || 'OSM Footprint Mesh'}`)
-                  : 'Point Centroid Selected'}
-              </span>
-            </div>
-
-            <div className={styles.dataCard}>
-              <span className={styles.dataLabel}>Rooftop Footprint Area</span>
-              <span className={`${styles.dataValue} ${styles.highlight}`}>
-                {areaFormatted ? `${areaFormatted.sqMeters} (${areaFormatted.sqFeet})` : 'Area Estimation Pending'}
-              </span>
-            </div>
-
-            <div className={styles.dataCard}>
-              <span className={styles.dataLabel}>Map Tile Layer</span>
-              <span className={styles.dataValue}>
-                {assessment?.mapLayer === 'satellite' ? '🛰️ Satellite Imagery' : '🗺️ OpenStreetMap Standard'}
-              </span>
-            </div>
-
-            <div className={styles.dataCard}>
-              <span className={styles.dataLabel}>Boundary Status</span>
-              <span className={`${styles.dataValue} ${styles.success}`}>
-                {assessment?.selectedBuildingGeometry ? '✓ GeoJSON Boundary Stored' : 'Point Location Registered'}
-              </span>
-            </div>
-          </div>
-
-          {/* Feature Roadmap */}
-          <div className={styles.roadmap}>
-            <h3 className={styles.roadmapTitle}>Upcoming Phase 3 Modules</h3>
-            <div className={styles.roadmapList}>
-              <div className={styles.roadmapItem}>
-                <span className={styles.stepNum}>01</span>
-                <div>
-                  <strong>AI Rooftop Obstacle Detection</strong>
-                  <p>Automatic detection of chimneys, HVAC units, skylights, and parapet shadows on your confirmed footprint.</p>
-                </div>
-              </div>
-              <div className={styles.roadmapItem}>
-                <span className={styles.stepNum}>02</span>
-                <div>
-                  <strong>3D Surface Mesh & Tilt Modeling</strong>
-                  <p>Azimuth, slope calculation, and sun path irradiance vectoring across the {areaFormatted?.sqMeters || 'rooftop'} area.</p>
-                </div>
-              </div>
-              <div className={styles.roadmapItem}>
-                <span className={styles.stepNum}>03</span>
-                <div>
-                  <strong>Financial & Energy Yield Simulations</strong>
-                  <p>Hourly solar generation projections, DISCOM tariffs, and ROI analysis.</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className={styles.actions}>
-            <button className={styles.secondaryBtn} onClick={() => navigate('/assessment')}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M19 12H5M12 19l-7-7 7-7" />
-              </svg>
-              Adjust Rooftop Boundary
-            </button>
-            <button className={styles.primaryBtn} onClick={() => navigate('/')}>
-              Return to Landing Page
-            </button>
-          </div>
-        </div>
-      </main>
-    </div>
+    <RooftopProvider initialRooftop={initialRooftop}>
+      <RooftopWorkspaceInner />
+    </RooftopProvider>
   );
 }
