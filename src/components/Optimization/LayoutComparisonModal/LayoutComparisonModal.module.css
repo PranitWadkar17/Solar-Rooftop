@@ -1,0 +1,190 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.modal {
+  background: var(--color-bg-card-solid);
+  border: 1px solid var(--color-border-card);
+  border-radius: 20px;
+  width: 100%;
+  max-width: 960px;
+  padding: 28px;
+  box-shadow: var(--shadow-xl);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--color-border-subtle);
+  padding-bottom: 14px;
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  margin: 0 0 4px 0;
+}
+
+.subtitle {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.closeBtn {
+  background: transparent;
+  border: none;
+  font-size: 18px;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  padding: 4px;
+  transition: color 0.15s ease;
+}
+
+.closeBtn:hover {
+  color: var(--color-text-primary);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.card {
+  background: var(--color-bg-main);
+  border: 1.5px solid var(--color-border-subtle);
+  border-radius: 14px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: all 0.2s ease;
+}
+
+.card:hover {
+  border-color: var(--color-border-card);
+  transform: translateY(-2px);
+}
+
+.cardActive {
+  border-color: var(--color-solar) !important;
+  background: rgba(245, 158, 11, 0.04);
+  box-shadow: 0 4px 20px rgba(245, 158, 11, 0.12);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cardName {
+  display: block;
+  font-size: 14px;
+  color: var(--color-text-primary);
+}
+
+.objectiveTag {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-solar);
+  letter-spacing: 0.04em;
+}
+
+.activeBadge {
+  font-size: 10px;
+  font-weight: 800;
+  background: var(--color-solar-muted);
+  color: var(--color-solar);
+  padding: 2px 8px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+.metricsList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.metricRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  padding: 4px 0;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.metricRow strong {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--color-text-primary);
+}
+
+.capacityVal {
+  color: var(--color-green) !important;
+  font-size: 13.5px;
+}
+
+.scoreVal {
+  color: var(--color-solar) !important;
+}
+
+.cardFooter {
+  margin-top: auto;
+  padding-top: 8px;
+}
+
+.selectBtn {
+  width: 100%;
+  padding: 10px;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-subtle);
+  color: var(--color-text-primary);
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.selectBtn:hover {
+  background: var(--color-solar);
+  color: #000;
+  border-color: var(--color-solar);
+}
+
+.currentBtn {
+  width: 100%;
+  padding: 10px;
+  background: var(--color-solar);
+  color: #000;
+  border: none;
+  font-size: 12px;
+  font-weight: 800;
+  border-radius: 8px;
+  cursor: default;
+}
+
+@media (max-width: 768px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

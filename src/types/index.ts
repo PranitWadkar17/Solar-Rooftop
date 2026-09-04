@@ -170,3 +170,16 @@ export type {
   SolarAnalysis,
   SolarTimelineState,
 } from './solar.js';
+
+export type {
+  PanelOrientation,
+  OptimizationObjective,
+  OptimizationToolMode,
+  PanelSpecification,
+  PanelInstance,
+  DesignConstraints,
+  LayoutValidation,
+  LayoutScoreBreakdown,
+  PanelLayout,
+  OptimizationWorkspaceState,
+} from './optimization.js';

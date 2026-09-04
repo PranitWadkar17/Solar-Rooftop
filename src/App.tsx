@@ -4,6 +4,7 @@ import { AssessmentWorkspace } from './pages/AssessmentWorkspace/AssessmentWorks
 import { RooftopPage } from './pages/RooftopPage/RooftopPage';
 import { SolarPage } from './pages/SolarPage/SolarPage';
 import { OptimizationPage } from './pages/OptimizationPage/OptimizationPage';
+import { EnergyPage } from './pages/EnergyPage/EnergyPage';
 import { useTheme } from './hooks/useTheme';
 import { createContext } from 'react';
 import type { Theme } from './hooks/useTheme';
@@ -28,6 +29,7 @@ function App() {
           <Route path="/assessment/rooftop" element={<RooftopPage />} />
           <Route path="/assessment/solar" element={<SolarPage />} />
           <Route path="/assessment/optimization" element={<OptimizationPage />} />
+          <Route path="/assessment/energy" element={<EnergyPage />} />
         </Routes>
       </BrowserRouter>
     </ThemeContext.Provider>

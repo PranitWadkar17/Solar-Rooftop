@@ -1,0 +1,296 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-main);
+  color: var(--color-text-primary);
+}
+
+.header {
+  height: 64px;
+  background: var(--color-bg-card-solid);
+  border-bottom: var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  position: relative;
+  z-index: 500;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-sm);
+}
+
+.left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.backBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--color-bg-main);
+  border: 1px solid var(--color-border-subtle);
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.backBtn:hover {
+  border-color: var(--color-solar);
+  color: var(--color-solar);
+}
+
+.logoText {
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.logoAccent {
+  color: var(--color-solar);
+}
+
+.center {
+  display: flex;
+  align-items: center;
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--color-bg-badge);
+  border: 1px solid var(--color-border-card);
+  border-radius: 6px;
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+  color: var(--color-solar);
+}
+
+.badgeDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-solar);
+}
+
+.container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 24px;
+}
+
+.contentCard {
+  max-width: 780px;
+  width: 100%;
+  background: var(--color-bg-card-solid);
+  border: 1px solid var(--color-border-card);
+  border-radius: 20px;
+  padding: 40px;
+  box-shadow: var(--shadow-xl);
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 20px;
+  color: var(--color-green);
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+.statusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-green);
+  box-shadow: 0 0 8px var(--color-green);
+}
+
+.title {
+  font-size: 26px;
+  font-weight: 800;
+  margin: 0 0 10px 0;
+  letter-spacing: -0.02em;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  margin: 0 0 28px 0;
+}
+
+.dataGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  margin-bottom: 30px;
+}
+
+.dataCard {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dataLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.dataValue {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.capacityHighlight {
+  color: var(--color-green) !important;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.scoreHighlight {
+  color: var(--color-solar) !important;
+}
+
+.dataSub {
+  font-size: 10px;
+  color: var(--color-text-muted);
+}
+
+.roadmap {
+  background: var(--color-bg-main);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 14px;
+  padding: 20px;
+  margin-bottom: 30px;
+}
+
+.roadmapTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0 0 14px 0;
+}
+
+.roadmapList {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.roadmapItem {
+  display: flex;
+  gap: 14px;
+}
+
+.stepNum {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--color-solar-muted);
+  color: var(--color-solar);
+  font-size: 12px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.roadmapItem strong {
+  display: block;
+  font-size: 13px;
+  margin-bottom: 2px;
+}
+
+.roadmapItem p {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+}
+
+.secondaryBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 10px;
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.secondaryBtn:hover {
+  border-color: var(--color-solar);
+  color: var(--color-solar);
+}
+
+.primaryBtn {
+  padding: 12px 24px;
+  background: var(--color-solar);
+  color: #000;
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.primaryBtn:hover {
+  background: var(--color-solar-light);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 768px) {
+  .contentCard {
+    padding: 24px;
+  }
+  .actions {
+    flex-direction: column;
+  }
+  .center {
+    display: none;
+  }
+}
