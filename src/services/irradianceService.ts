@@ -184,12 +184,15 @@ export function generateRecommendedSolarArea(
   rooftop: Rooftop,
   obstacles: Obstacle[],
   solarEffectiveAreaSqM: number,
+  avgSolarAccessPct: number = 88,
+  highThresholdPct: number = 80,
+  targetCoverageFactor: number = 0.88,
 ): SelectedSolarArea {
   const roofCoords = rooftop.geometry.coordinates[0] as [number, number][];
   const centroid = calculateCentroid(roofCoords);
 
-  // Inset scale factor (~88% of roof to respect edges/walkways)
-  const scale = 0.88;
+  // Dynamic inset scale factor
+  const scale = Math.max(0.6, Math.min(0.95, targetCoverageFactor));
   const insetCoords: [number, number][] = roofCoords.map(([lng, lat]) => [
     centroid.lng + (lng - centroid.lng) * scale,
     centroid.lat + (lat - centroid.lat) * scale,
@@ -199,7 +202,7 @@ export function generateRecommendedSolarArea(
   // Cap recommended area to solarEffectiveAreaSqM
   const area = Math.min(solarEffectiveAreaSqM, Math.round(rawArea * 10) / 10);
 
-  // Check obstacle conflicts
+  // Check obstacle conflicts dynamically (both points and polygon centroids)
   let conflictCount = 0;
   for (const obs of obstacles) {
     if (obs.status === 'rejected') continue;
@@ -207,7 +210,31 @@ export function generateRecommendedSolarArea(
       if (isPointInPolygon(obs.geometry.coordinates as [number, number], insetCoords)) {
         conflictCount++;
       }
+    } else if (obs.geometry.type === 'Polygon') {
+      const obsCentroid = calculateCentroid(obs.geometry.coordinates[0] as [number, number][]);
+      if (isPointInPolygon([obsCentroid.lng, obsCentroid.lat], insetCoords)) {
+        conflictCount++;
+      }
     }
+  }
+
+  // Dynamically derive solar access based on roof baseline and obstacles
+  const dynamicSolarAccess = conflictCount > 0
+    ? Math.max(50, Math.round(avgSolarAccessPct * 0.85))
+    : Math.min(100, Math.round(avgSolarAccessPct * 1.05));
+
+  const dynamicShadingLoss = Math.max(0, 100 - dynamicSolarAccess);
+
+  // Dynamic zone classification based on thresholds
+  let solarZone: 'High' | 'Medium' | 'Low' | 'Mixed' = 'High';
+  if (conflictCount > 0) {
+    solarZone = 'Mixed';
+  } else if (dynamicSolarAccess >= highThresholdPct) {
+    solarZone = 'High';
+  } else if (dynamicSolarAccess >= highThresholdPct * 0.75) {
+    solarZone = 'Medium';
+  } else {
+    solarZone = 'Low';
   }
 
   const now = new Date().toISOString();
@@ -220,9 +247,9 @@ export function generateRecommendedSolarArea(
       coordinates: [insetCoords],
     },
     area,
-    solarZone: 'High',
-    avgSolarAccessPct: 92,
-    avgShadingLossPct: 8,
+    solarZone,
+    avgSolarAccessPct: dynamicSolarAccess,
+    avgShadingLossPct: dynamicShadingLoss,
     obstacleConflicts: conflictCount,
     selectionMethod: 'recommended',
     createdAt: now,

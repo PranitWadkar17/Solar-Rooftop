@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useSolar } from '@/context/SolarContext';
 import { formatArea } from '@/utils/geoUtils';
+import { DEFAULT_SOLAR_ASSUMPTIONS } from '@/services/irradianceService';
 import styles from './SolarSidebar.module.css';
 
 interface SolarSidebarProps {
@@ -10,7 +11,7 @@ interface SolarSidebarProps {
 export function SolarSidebar({ onProceedToOptimization }: SolarSidebarProps) {
   const { state, dispatch, triggerReanalysis } = useSolar();
   const { analysis, status, rooftop, toolMode } = state;
-  const [activeTab, setActiveTab] = useState<'overview' | 'select_area' | 'monthly' | 'sections' | 'assumptions'>('select_area');
+  const [activeTab, setActiveTab] = useState<'overview' | 'select_area' | 'assumptions'>('select_area');
 
   if (!analysis || !rooftop) return null;
 
@@ -19,8 +20,6 @@ export function SolarSidebar({ onProceedToOptimization }: SolarSidebarProps) {
   const effectiveAreaFormatted = formatArea(analysis.solarEffectiveAreaSqM);
   const selectedArea = analysis.selectedArea;
   const selectedAreaFormatted = selectedArea ? formatArea(selectedArea.area) : null;
-
-  const maxMonthlyGhi = Math.max(...analysis.resourceData.monthlyData.map((m) => m.ghi));
 
   const isSelectionReady = Boolean(selectedArea && selectedArea.area > 0 && selectedArea.obstacleConflicts === 0);
 
@@ -44,22 +43,6 @@ export function SolarSidebar({ onProceedToOptimization }: SolarSidebarProps) {
           aria-selected={activeTab === 'overview'}
         >
           Overview
-        </button>
-        <button
-          className={`${styles.tab} ${activeTab === 'monthly' ? styles.tabActive : ''}`}
-          onClick={() => setActiveTab('monthly')}
-          role="tab"
-          aria-selected={activeTab === 'monthly'}
-        >
-          Monthly
-        </button>
-        <button
-          className={`${styles.tab} ${activeTab === 'sections' ? styles.tabActive : ''}`}
-          onClick={() => setActiveTab('sections')}
-          role="tab"
-          aria-selected={activeTab === 'sections'}
-        >
-          Planes ({analysis.sectionMetrics.length})
         </button>
         <button
           className={`${styles.tab} ${activeTab === 'assumptions' ? styles.tabActive : ''}`}
@@ -325,73 +308,23 @@ export function SolarSidebar({ onProceedToOptimization }: SolarSidebarProps) {
           </div>
         )}
 
-        {/* TAB 3: MONTHLY IRRADIANCE */}
-        {activeTab === 'monthly' && (
-          <div className={styles.tabPane}>
-            <div className={styles.sectionCard}>
-              <span className={styles.cardTitle}>Monthly Solar Profile</span>
-              <p className={styles.cardDesc}>
-                Daily average Global Horizontal Irradiance (GHI in kWh/m²/day) by month.
-              </p>
-
-              <div className={styles.monthlyChart}>
-                {analysis.resourceData.monthlyData.map((m) => {
-                  const heightPct = Math.round((m.ghi / maxMonthlyGhi) * 100);
-                  return (
-                    <div key={m.month} className={styles.chartCol}>
-                      <div className={styles.barWrapper} title={`${m.monthName}: ${m.ghi} kWh/m²/day (${m.avgTempC}°C)`}>
-                        <div className={styles.barFill} style={{ height: `${heightPct}%` }} />
-                        <span className={styles.barValue}>{m.ghi}</span>
-                      </div>
-                      <span className={styles.barLabel}>{m.monthName}</span>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className={styles.chartFooter}>
-                <span>Annual Total: <strong>{analysis.resourceData.annualGhi} kWh/m²</strong></span>
-                <span>Peak Month: <strong>May ({maxMonthlyGhi} kWh/m²/day)</strong></span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* TAB 4: ROOF SECTIONS */}
-        {activeTab === 'sections' && (
-          <div className={styles.tabPane}>
-            <div className={styles.sectionCard}>
-              <span className={styles.cardTitle}>Plane Suitability Metrics</span>
-              <p className={styles.cardDesc}>Solar access scores across individual roof planes.</p>
-
-              <div className={styles.sectionsList}>
-                {analysis.sectionMetrics.map((sec) => (
-                  <div key={sec.sectionId} className={styles.sectionItemCard}>
-                    <div className={styles.secItemHeader}>
-                      <strong>{sec.label}</strong>
-                      <span className={`${styles.secBadge} ${styles[sec.classification.toLowerCase()]}`}>
-                        {sec.classification} ({sec.suitabilityScore}/100)
-                      </span>
-                    </div>
-
-                    <div className={styles.secDetailsGrid}>
-                      <div>Area: <strong>{Math.round(sec.area)} m²</strong></div>
-                      <div>Solar Access: <strong>{sec.avgSolarAccessPct}%</strong></div>
-                      <div>Shading Loss: <strong>{sec.avgShadingLossPct}%</strong></div>
-                      <div>Irradiance: <strong>{sec.avgAnnualIrradiance} kWh/m²</strong></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* TAB 5: ASSUMPTIONS & PROVENANCE */}
+        {/* TAB 3: ASSUMPTIONS & PROVENANCE (DYNAMIC) */}
         {activeTab === 'assumptions' && (
           <div className={styles.tabPane}>
             <div className={styles.sectionCard}>
-              <span className={styles.cardTitle}>Model Parameters & Assumptions</span>
+              <div className={styles.cardHeader}>
+                <span className={styles.cardTitle}>Model Parameters & Assumptions</span>
+                <button
+                  className={styles.resetBtn}
+                  onClick={() => dispatch({ type: 'UPDATE_ASSUMPTIONS', payload: DEFAULT_SOLAR_ASSUMPTIONS })}
+                  title="Reset assumptions to default standards"
+                >
+                  Reset Defaults
+                </button>
+              </div>
+              <p className={styles.cardDesc}>
+                Adjust solar thresholds and physical loss assumptions. Metrics and effective area recalculate live.
+              </p>
 
               <div className={styles.assumptionsTable}>
                 <div className={styles.assumptionRow}>
@@ -407,20 +340,92 @@ export function SolarSidebar({ onProceedToOptimization }: SolarSidebarProps) {
                   <strong>{analysis.resourceData.resolution}</strong>
                 </div>
                 <div className={styles.assumptionRow}>
-                  <span>High Potential Threshold</span>
-                  <strong>≥ {analysis.assumptions.highThresholdPct}% Solar Access</strong>
+                  <label htmlFor="input-high-threshold">High Potential Threshold (%)</label>
+                  <input
+                    id="input-high-threshold"
+                    type="number"
+                    min="50"
+                    max="95"
+                    value={analysis.assumptions.highThresholdPct}
+                    onChange={(e) =>
+                      dispatch({
+                        type: 'UPDATE_ASSUMPTIONS',
+                        payload: { highThresholdPct: Number(e.target.value) },
+                      })
+                    }
+                    className={styles.numInput}
+                  />
                 </div>
                 <div className={styles.assumptionRow}>
-                  <span>Medium Potential Threshold</span>
-                  <strong>{analysis.assumptions.mediumThresholdPct}% – {analysis.assumptions.highThresholdPct}%</strong>
+                  <label htmlFor="input-med-threshold">Medium Potential Threshold (%)</label>
+                  <input
+                    id="input-med-threshold"
+                    type="number"
+                    min="30"
+                    max="80"
+                    value={analysis.assumptions.mediumThresholdPct}
+                    onChange={(e) =>
+                      dispatch({
+                        type: 'UPDATE_ASSUMPTIONS',
+                        payload: { mediumThresholdPct: Number(e.target.value) },
+                      })
+                    }
+                    className={styles.numInput}
+                  />
                 </div>
                 <div className={styles.assumptionRow}>
-                  <span>Ground Albedo</span>
-                  <strong>{analysis.assumptions.albedoGroundReflectance}</strong>
+                  <label htmlFor="input-obstacle-height">Default Obstacle Height (m)</label>
+                  <input
+                    id="input-obstacle-height"
+                    type="number"
+                    step="0.5"
+                    min="0.5"
+                    max="10"
+                    value={analysis.assumptions.defaultObstacleHeightMeters}
+                    onChange={(e) =>
+                      dispatch({
+                        type: 'UPDATE_ASSUMPTIONS',
+                        payload: { defaultObstacleHeightMeters: Number(e.target.value) },
+                      })
+                    }
+                    className={styles.numInput}
+                  />
                 </div>
                 <div className={styles.assumptionRow}>
-                  <span>Soiling Loss Assumption</span>
-                  <strong>{analysis.assumptions.soilingLossAssumptionPct}%</strong>
+                  <label htmlFor="input-ground-albedo">Ground Albedo (0.0 – 1.0)</label>
+                  <input
+                    id="input-ground-albedo"
+                    type="number"
+                    step="0.05"
+                    min="0.05"
+                    max="0.8"
+                    value={analysis.assumptions.albedoGroundReflectance}
+                    onChange={(e) =>
+                      dispatch({
+                        type: 'UPDATE_ASSUMPTIONS',
+                        payload: { albedoGroundReflectance: Number(e.target.value) },
+                      })
+                    }
+                    className={styles.numInput}
+                  />
+                </div>
+                <div className={styles.assumptionRow}>
+                  <label htmlFor="input-soiling-loss">Soiling Loss (%)</label>
+                  <input
+                    id="input-soiling-loss"
+                    type="number"
+                    step="0.5"
+                    min="0"
+                    max="20"
+                    value={analysis.assumptions.soilingLossAssumptionPct}
+                    onChange={(e) =>
+                      dispatch({
+                        type: 'UPDATE_ASSUMPTIONS',
+                        payload: { soilingLossAssumptionPct: Number(e.target.value) },
+                      })
+                    }
+                    className={styles.numInput}
+                  />
                 </div>
               </div>
             </div>

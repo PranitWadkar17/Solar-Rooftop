@@ -1,5 +1,4 @@
 import { useSolar } from '@/context/SolarContext';
-import { getSeasonalDatePresets } from '@/services/sunPositionService';
 import styles from './SolarTimeline.module.css';
 
 function formatMinutesToTime(minutes: number): string {
@@ -13,43 +12,20 @@ function formatMinutesToTime(minutes: number): string {
 export function SolarTimeline() {
   const { state, dispatch, currentSunPosition } = useSolar();
   const { timeline } = state;
-  const presets = getSeasonalDatePresets();
 
   return (
     <div className={styles.timelineBar} role="region" aria-label="Solar Timeline and Sun Position Control">
       <div className={styles.topRow}>
-        {/* Seasonal & Date Selector */}
+        {/* Date Selector */}
         <div className={styles.periodGroup}>
-          <span className={styles.label}>Solar Season:</span>
-          <div className={styles.periodTabs}>
-            <button
-              className={`${styles.periodTab} ${timeline.periodMode === 'annual' || (timeline.periodMode === 'summer' && timeline.date === presets.summer) ? styles.tabActive : ''}`}
-              onClick={() => dispatch({ type: 'SET_PERIOD_MODE', payload: 'summer' })}
-            >
-              ☀️ Summer
-            </button>
-            <button
-              className={`${styles.periodTab} ${timeline.periodMode === 'monsoon' ? styles.tabActive : ''}`}
-              onClick={() => dispatch({ type: 'SET_PERIOD_MODE', payload: 'monsoon' })}
-            >
-              🌧️ Monsoon
-            </button>
-            <button
-              className={`${styles.periodTab} ${timeline.periodMode === 'winter' ? styles.tabActive : ''}`}
-              onClick={() => dispatch({ type: 'SET_PERIOD_MODE', payload: 'winter' })}
-            >
-              ❄️ Winter
-            </button>
-          </div>
-
           <div className={styles.dateInputWrapper}>
             <input
               type="date"
               className={styles.dateInput}
               value={timeline.date}
               onChange={(e) => dispatch({ type: 'SET_DATE', payload: e.target.value })}
-              title="Custom Analysis Date"
-              aria-label="Custom Analysis Date"
+              title="Analysis Date"
+              aria-label="Analysis Date"
             />
           </div>
         </div>

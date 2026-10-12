@@ -12,11 +12,12 @@ import type {
   SelectedSolarArea,
   SolarAreaToolMode,
   AnalysisPeriodMode,
+  SolarAssumptions,
 } from '@/types/solar.js';
 import { calculateSunPosition, getSeasonalDatePresets } from '@/services/sunPositionService';
 import { calculateProjectedShadows } from '@/services/shadingService';
 import { runSolarAnalysis, isAnalysisOutdated, saveSolarAnalysis } from '@/services/solarAnalysisService';
-import { generateRecommendedSolarArea, evaluateSelectedSolarArea } from '@/services/irradianceService';
+import { generateRecommendedSolarArea, evaluateSelectedSolarArea, generateSolarAnalysisZones } from '@/services/irradianceService';
 
 // --- State Interface ---
 
@@ -88,6 +89,7 @@ type SolarAction =
   | { type: 'SET_SELECTED_AREA'; payload: SelectedSolarArea | null }
   | { type: 'RECOMMEND_BEST_AREA' }
   | { type: 'CLEAR_SELECTED_AREA' }
+  | { type: 'UPDATE_ASSUMPTIONS'; payload: Partial<SolarAssumptions> }
   | { type: 'SELECT_SECTION'; payload: string | null }
   | { type: 'TOGGLE_LAYER'; payload: keyof Pick<SolarWorkspaceState, 'showHeatmap' | 'showShadows' | 'showEffectiveArea' | 'showSelectedArea' | 'showObstacles' | 'showClearance'> }
   | { type: 'MARK_SAVED' };
@@ -206,6 +208,8 @@ function solarReducer(state: SolarWorkspaceState, action: SolarAction): SolarWor
         state.rooftop,
         state.rooftop.obstacles,
         state.analysis.solarEffectiveAreaSqM,
+        state.analysis.avgSolarAccessPct,
+        state.analysis.assumptions.highThresholdPct,
       );
       const updatedAnalysis: SolarAnalysis = {
         ...state.analysis,
@@ -218,6 +222,40 @@ function solarReducer(state: SolarWorkspaceState, action: SolarAction): SolarWor
         analysis: updatedAnalysis,
         toolMode: 'view',
         drawingPoints: [],
+        saveStatus: 'saved',
+      };
+    }
+
+    case 'UPDATE_ASSUMPTIONS': {
+      if (!state.analysis || !state.rooftop) return state;
+      const newAssumptions: SolarAssumptions = {
+        ...state.analysis.assumptions,
+        ...action.payload,
+      };
+
+      // Live re-evaluation of zones and solar-effective area based on updated assumptions
+      const zoneResult = generateSolarAnalysisZones(
+        state.rooftop,
+        state.analysis.resourceData,
+        state.rooftop.obstacles,
+        state.analysis.physicalUsableAreaSqM,
+        newAssumptions,
+      );
+
+      const updatedAnalysis: SolarAnalysis = {
+        ...state.analysis,
+        assumptions: newAssumptions,
+        zones: zoneResult.zones,
+        solarEffectiveAreaSqM: zoneResult.solarEffectiveAreaSqM,
+        avgSolarAccessPct: zoneResult.avgSolarAccess,
+        avgShadingImpactPct: zoneResult.avgShadingLoss,
+        updatedAt: new Date().toISOString(),
+      };
+
+      saveSolarAnalysis(updatedAnalysis);
+      return {
+        ...state,
+        analysis: updatedAnalysis,
         saveStatus: 'saved',
       };
     }
