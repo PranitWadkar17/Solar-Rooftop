@@ -20,7 +20,7 @@ export function RooftopSidebar({
   const { state, dispatch } = useRooftop();
   const { rooftop, activeUnit, selectedObstacleId, aiDetectionStatus, aiDetectionError } = state;
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'obstacles' | 'sections' | 'usable'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'obstacles' | 'usable'>('overview');
 
   if (!rooftop) return null;
 
@@ -33,7 +33,6 @@ export function RooftopSidebar({
 
   const pendingObstacles = rooftop.obstacles.filter((o) => o.status === 'pending');
   const activeObstacles = rooftop.obstacles.filter((o) => o.status !== 'rejected');
-  const existingSolarObstacles = rooftop.obstacles.filter((o) => o.type === 'existing_solar_panel' && o.status !== 'rejected');
 
   // Trigger AI Detection
   const handleRunAiDetection = async () => {
@@ -91,14 +90,6 @@ export function RooftopSidebar({
           {pendingObstacles.length > 0 && (
             <span className={styles.tabAlertDot} title={`${pendingObstacles.length} AI detections pending review`} />
           )}
-        </button>
-        <button
-          className={`${styles.tab} ${activeTab === 'sections' ? styles.tabActive : ''}`}
-          onClick={() => setActiveTab('sections')}
-          role="tab"
-          aria-selected={activeTab === 'sections'}
-        >
-          Planes ({rooftop.sections.length || 1})
         </button>
         <button
           className={`${styles.tab} ${activeTab === 'usable' ? styles.tabActive : ''}`}
@@ -199,17 +190,6 @@ export function RooftopSidebar({
                     </option>
                   ))}
                 </select>
-              </div>
-
-              <div className={styles.provenanceTag}>
-                <span className={styles.tagLabel}>Data Provenance:</span>
-                <span className={styles.tagValue}>
-                  {rooftop.source === 'map_building_data' && '🗺️ Derived from OpenStreetMap footprint'}
-                  {rooftop.source === 'user_drawn' && '✏️ User-drawn custom geometry'}
-                  {rooftop.source === 'user_corrected' && '✓ User-verified boundary'}
-                  {rooftop.source === 'ai_detected' && '🤖 AI-segmented rooftop'}
-                  {rooftop.source === 'derived' && '📐 Geometric derivation'}
-                </span>
               </div>
             </div>
           </div>
@@ -377,52 +357,6 @@ export function RooftopSidebar({
           </div>
         )}
 
-        {/* TAB 3: ROOF SECTIONS / PLANES */}
-        {activeTab === 'sections' && (
-          <div className={styles.tabPane}>
-            <div className={styles.sectionCard}>
-              <span className={styles.cardTitle}>Roof Sections & Planes</span>
-              <p className={styles.cardDesc}>
-                Split complex rooftops (e.g. Gabled or Hip roofs) into separate planes for independent tilt and azimuth modeling in Phase 4.
-              </p>
-
-              {rooftop.sections.length === 0 ? (
-                <div className={styles.singlePlaneNotice}>
-                  <span className={styles.planeIcon}>🏠</span>
-                  <strong>Single Unified Roof Plane</strong>
-                  <p>The entire {activeUnit === 'metric' ? areaFormatted.sqMeters : areaFormatted.sqFeet} boundary is currently treated as one contiguous plane.</p>
-                </div>
-              ) : (
-                <div className={styles.sectionList}>
-                  {rooftop.sections.map((sec) => (
-                    <div key={sec.id} className={styles.sectionItem}>
-                      <div className={styles.secInfo}>
-                        <strong>{sec.label}</strong>
-                        <span>{formatArea(sec.area).display} • {sec.roofType}</span>
-                      </div>
-                      <button
-                        className={styles.deleteBtn}
-                        onClick={() => dispatch({ type: 'DELETE_SECTION', payload: sec.id })}
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Existing Solar Arrays */}
-            {existingSolarObstacles.length > 0 && (
-              <div className={styles.sectionCard}>
-                <span className={styles.cardTitle}>⚡ Existing Solar Arrays</span>
-                <p className={styles.cardDesc}>
-                  Identified existing photovoltaic panels ({existingSolarObstacles.length} zone(s)). Excluded from new proposed module layout.
-                </p>
-              </div>
-            )}
-          </div>
-        )}
 
         {/* TAB 4: USABLE AREA BREAKDOWN */}
         {activeTab === 'usable' && (
