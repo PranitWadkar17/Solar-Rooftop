@@ -22,9 +22,32 @@ export function OptimizationSidebar({ onProceedToEnergy, onOpenComparison }: Opt
     updateConstraints,
     reoptimize,
     finalizeLayout,
+    consumption,
+    uploadBill,
+    removeBill,
   } = useOptimization();
 
   const [activeTab, setActiveTab] = useState<'design' | 'metrics' | 'inspector'>('design');
+  const [isUploadingBill, setIsUploadingBill] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const handleBillUpload = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      setUploadError('Please upload an image file (PNG, JPG, etc.)');
+      return;
+    }
+
+    setIsUploadingBill(true);
+    setUploadError(null);
+
+    try {
+      await uploadBill(file);
+    } catch (error) {
+      setUploadError(error instanceof Error ? error.message : 'Failed to extract consumption data');
+    } finally {
+      setIsUploadingBill(false);
+    }
+  };
 
   if (!activeLayout) return null;
 
@@ -66,6 +89,82 @@ export function OptimizationSidebar({ onProceedToEnergy, onOpenComparison }: Opt
         {/* TAB 1: ARRAY DESIGN (Objective, Panel Hardware, Constraints) */}
         {activeTab === 'design' && (
           <div className={styles.tabPane}>
+            {/* Electricity Bill Upload Section */}
+            <div className={styles.sectionCard}>
+              <div className={styles.cardHeader}>
+                <span className={styles.cardTitle}>💡 Electricity Consumption (Optional)</span>
+              </div>
+
+              {!consumption ? (
+                <>
+                  <p className={styles.billDescription}>
+                    Upload your electricity bill to receive a panel layout optimized for your actual consumption needs.
+                  </p>
+                  
+                  <label className={styles.billUploadLabel}>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className={styles.billUploadInput}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleBillUpload(file);
+                      }}
+                      disabled={isUploadingBill}
+                    />
+                    <div className={styles.billUploadButton}>
+                      {isUploadingBill ? (
+                        <>
+                          <span className={styles.uploadSpinner}>⏳</span>
+                          <span>Extracting consumption data...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>📄</span>
+                          <span>Upload Electricity Bill</span>
+                        </>
+                      )}
+                    </div>
+                  </label>
+
+                  {uploadError && (
+                    <div className={styles.uploadError}>
+                      ⚠️ {uploadError}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className={styles.billSummary}>
+                  <div className={styles.billHeader}>
+                    <span className={styles.billIcon}>✅</span>
+                    <div className={styles.billInfo}>
+                      <strong>{consumption.billFileName}</strong>
+                      <span className={styles.billMeta}>
+                        {consumption.annualKwh ? `${consumption.annualKwh.toLocaleString()} kWh/year` : 'No consumption data'}
+                        {consumption.confidence !== null && ` • ${Math.round(consumption.confidence * 100)}% confidence`}
+                      </span>
+                    </div>
+                    <button
+                      className={styles.removeBillBtn}
+                      onClick={removeBill}
+                      title="Remove bill and use maximum capacity"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  
+                  {consumption.annualKwh && (
+                    <div className={styles.consumptionHighlight}>
+                      <span className={styles.consumptionLabel}>Annual Consumption</span>
+                      <strong className={styles.consumptionValue}>
+                        {consumption.annualKwh.toLocaleString()} kWh
+                      </strong>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             {/* Optimization Objective Selector */}
             <div className={styles.sectionCard}>
               <span className={styles.cardTitle}>Optimization Objective</span>
@@ -74,6 +173,10 @@ export function OptimizationSidebar({ onProceedToEnergy, onOpenComparison }: Opt
                   { id: 'max_generation', label: '☀️ Max Generation' },
                   { id: 'max_capacity', label: '⚡ Max Capacity' },
                   { id: 'balanced', label: '⚖️ Balanced' },
+                  ...(consumption && consumption.annualKwh 
+                    ? [{ id: 'consumption_optimized', label: '💡 Match Consumption' }] 
+                    : []
+                  ),
                 ].map((obj) => (
                   <button
                     key={obj.id}
@@ -342,7 +445,7 @@ export function OptimizationSidebar({ onProceedToEnergy, onOpenComparison }: Opt
           ↪ Redo
         </button>
         <button className={styles.compareBtn} onClick={onOpenComparison} title="Compare Candidate Layouts">
-          📊 Compare (3)
+          📊 Compare ({state.layouts.length})
         </button>
       </div>
 

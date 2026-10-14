@@ -2,6 +2,10 @@ import { useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { loadAssessment } from '@/services/assessmentService';
 import { loadPanelLayout } from '@/services/optimizationService';
+import { loadRooftop } from '@/services/rooftopService';
+import { loadSolarAnalysis } from '@/services/solarAnalysisService';
+import { buildConsumptionComparison } from '@/services/energyAnalysisService';
+import { exportProjectAsJSON, exportAsGeoJSON, downloadJSON, downloadGeoJSON } from '@/services/dataExportService';
 import { formatArea } from '@/utils/geoUtils';
 import { ProgressStepper } from '@/components/Assessment/ProgressStepper/ProgressStepper';
 import { ThemeContext } from '@/App';
@@ -12,9 +16,24 @@ export function EnergyPage() {
   const navigate = useNavigate();
   const assessment = loadAssessment();
   const layout = assessment?.assessmentId ? loadPanelLayout(assessment.assessmentId) : null;
+  const rooftop = assessment?.assessmentId ? loadRooftop(assessment.assessmentId) : null;
+  const solarAnalysis = assessment?.assessmentId ? loadSolarAnalysis(assessment.assessmentId) : null;
   const { theme, toggleTheme } = useContext(ThemeContext);
 
   const occupiedFormatted = layout ? formatArea(layout.occupiedAreaSqM) : null;
+  const comparison = buildConsumptionComparison(layout, assessment?.consumption ?? null);
+
+  const handleDownloadJSON = () => {
+    if (!assessment) return;
+    const result = exportProjectAsJSON(assessment, rooftop, solarAnalysis, layout);
+    downloadJSON(result.data, `solar-assessment-${assessment.assessmentId}.json`);
+  };
+
+  const handleDownloadGeoJSON = () => {
+    if (!rooftop) return;
+    const geoJSONData = exportAsGeoJSON(rooftop, layout, solarAnalysis);
+    downloadGeoJSON(geoJSONData, `solar-rooftop-${assessment?.assessmentId}.geojson`);
+  };
 
   return (
     <div className={styles.page}>
@@ -113,6 +132,76 @@ export function EnergyPage() {
             </div>
           </div>
 
+          {comparison.annualConsumptionKwh !== null && (
+            <>
+              <div className={styles.consumptionNote}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M12 16v-4M12 8h.01" />
+                </svg>
+                <span>
+                  Electricity consumption profile loaded from Phase 04 Optimization. 
+                  Return to Optimization to modify consumption data.
+                </span>
+              </div>
+
+              <div className={styles.comparisonPanel}>
+              <div className={styles.comparisonHeader}>
+                <div>
+                  <span className={styles.billLabel}>Generation vs use</span>
+                  <h3>Annual coverage analysis</h3>
+                </div>
+                <span className={`${styles.statusPill} ${styles[comparison.status]}`}>
+                  {comparison.status}
+                </span>
+              </div>
+
+              <div className={styles.comparisonGrid}>
+                <div className={styles.comparisonCard}>
+                  <span>Annual generation</span>
+                  <strong>{comparison.annualGenerationKwh.toLocaleString()} kWh</strong>
+                </div>
+                <div className={styles.comparisonCard}>
+                  <span>Annual consumption</span>
+                  <strong>{comparison.annualConsumptionKwh.toLocaleString()} kWh</strong>
+                </div>
+                <div className={styles.comparisonCard}>
+                  <span>Coverage</span>
+                  <strong>{Math.round(comparison.coverageRatioPct ?? 0)}%</strong>
+                </div>
+                <div className={styles.comparisonCard}>
+                  <span>Self-supply score</span>
+                  <strong>{comparison.selfSupplyScore !== null ? `${Math.round(comparison.selfSupplyScore)}%` : 'N/A'}</strong>
+                </div>
+                <div className={styles.comparisonCard}>
+                  <span>{comparison.status === 'surplus' ? 'Surplus' : 'Shortfall'}</span>
+                  <strong>
+                    {comparison.status === 'surplus'
+                      ? `${(comparison.surplusKwh ?? 0).toLocaleString()} kWh`
+                      : `${(comparison.shortfallKwh ?? 0).toLocaleString()} kWh`}
+                  </strong>
+                </div>
+              </div>
+
+              <div className={styles.monthlySummary}>
+                {comparison.monthlyComparison.map((entry) => {
+                  const monthLabel = new Date(`${entry.month}-01T00:00:00`).toLocaleString('en-US', { month: 'short' });
+                  const deltaText = `${entry.deltaKwh >= 0 ? '+' : '-'}${Math.abs(entry.deltaKwh).toLocaleString()} kWh`;
+
+                  return (
+                    <div key={entry.month} className={styles.monthRow}>
+                      <span className={styles.monthLabel}>{monthLabel}</span>
+                      <span>{entry.generationKwh.toLocaleString()} kWh</span>
+                      <span>{entry.consumptionKwh.toLocaleString()} kWh</span>
+                      <span className={entry.deltaKwh >= 0 ? styles.deltaPositive : styles.deltaNegative}>{deltaText}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            </>
+          )}
+
           {/* Phase 6 Roadmap */}
           <div className={styles.roadmap}>
             <h3 className={styles.roadmapTitle}>Upcoming Phase 6 Energy Simulation Modules</h3>
@@ -149,6 +238,25 @@ export function EnergyPage() {
               </svg>
               Adjust Module Layout & Hardware
             </button>
+            
+            <button className={styles.exportBtn} onClick={handleDownloadJSON} disabled={!assessment}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              Download Report (JSON)
+            </button>
+            
+            <button className={styles.exportBtn} onClick={handleDownloadGeoJSON} disabled={!rooftop}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              Download GeoJSON
+            </button>
+            
             <button className={styles.primaryBtn} onClick={() => navigate('/')}>
               Return to Landing Page
             </button>

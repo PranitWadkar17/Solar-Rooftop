@@ -17,9 +17,29 @@ import {
 import { getObstacleCategory } from '@/data/obstacleCategories';
 
 const STORAGE_PREFIX = 'solarroof-rooftop-';
+const BACKUP_SUFFIX = '-backup';
 
 function getStorageKey(assessmentId: string): string {
   return `${STORAGE_PREFIX}${assessmentId}`;
+}
+
+function getBackupKey(assessmentId: string): string {
+  return `${STORAGE_PREFIX}${assessmentId}${BACKUP_SUFFIX}`;
+}
+
+/**
+ * Validates rooftop data structure
+ */
+function validateRooftop(rooftop: unknown): rooftop is Rooftop {
+  if (!rooftop || typeof rooftop !== 'object') return false;
+  const r = rooftop as Partial<Rooftop>;
+  
+  if (!r.id || !r.assessmentId) return false;
+  if (!r.geometry || !r.geometry.coordinates || r.geometry.coordinates.length === 0) return false;
+  if (typeof r.area !== 'number' || r.area <= 0) return false;
+  if (!Array.isArray(r.obstacles) || !Array.isArray(r.sections)) return false;
+  
+  return true;
 }
 
 // --- Derive Rooftop from Phase 2 Building Footprint ---
@@ -182,9 +202,40 @@ export function createRoofSection(
 
 export function saveRooftop(rooftop: Rooftop): void {
   try {
-    sessionStorage.setItem(getStorageKey(rooftop.assessmentId), JSON.stringify(rooftop));
+    // Validate before saving
+    if (!validateRooftop(rooftop)) {
+      console.error('Invalid rooftop data - skipping persistence');
+      return;
+    }
+    
+    const key = getStorageKey(rooftop.assessmentId);
+    const backupKey = getBackupKey(rooftop.assessmentId);
+    
+    // Create backup
+    const existing = sessionStorage.getItem(key);
+    if (existing) {
+      try {
+        sessionStorage.setItem(backupKey, existing);
+      } catch (backupError) {
+        console.warn('Failed to create rooftop backup:', backupError);
+      }
+    }
+    
+    sessionStorage.setItem(key, JSON.stringify(rooftop));
   } catch (e) {
-    console.warn('Failed to persist rooftop:', e);
+    console.error('Failed to persist rooftop:', e);
+    
+    // Handle quota exceeded
+    if (e instanceof Error && e.name === 'QuotaExceededError') {
+      try {
+        const backupKey = getBackupKey(rooftop.assessmentId);
+        sessionStorage.removeItem(backupKey);
+        sessionStorage.setItem(getStorageKey(rooftop.assessmentId), JSON.stringify(rooftop));
+        console.warn('Storage full - cleared backup and retried');
+      } catch (retryError) {
+        console.error('Failed to save rooftop even after clearing backup:', retryError);
+      }
+    }
   }
 }
 
@@ -192,12 +243,54 @@ export function loadRooftop(assessmentId: string): Rooftop | null {
   try {
     const stored = sessionStorage.getItem(getStorageKey(assessmentId));
     if (!stored) return null;
-    return JSON.parse(stored) as Rooftop;
-  } catch {
+    
+    const parsed = JSON.parse(stored);
+    
+    if (!validateRooftop(parsed)) {
+      console.error('Loaded rooftop data is invalid');
+      
+      // Try backup recovery
+      const backup = sessionStorage.getItem(getBackupKey(assessmentId));
+      if (backup) {
+        console.log('Attempting to recover rooftop from backup...');
+        const backupParsed = JSON.parse(backup);
+        if (validateRooftop(backupParsed)) {
+          console.log('Successfully recovered rooftop from backup');
+          sessionStorage.setItem(getStorageKey(assessmentId), backup);
+          return backupParsed;
+        }
+      }
+      
+      return null;
+    }
+    
+    return parsed as Rooftop;
+  } catch (error) {
+    console.error('Failed to load rooftop:', error);
+    
+    // Try backup recovery
+    try {
+      const backup = sessionStorage.getItem(getBackupKey(assessmentId));
+      if (backup) {
+        const backupParsed = JSON.parse(backup);
+        if (validateRooftop(backupParsed)) {
+          console.log('Recovered rooftop from backup after error');
+          return backupParsed as Rooftop;
+        }
+      }
+    } catch (backupError) {
+      console.error('Rooftop backup recovery failed:', backupError);
+    }
+    
     return null;
   }
 }
 
 export function clearRooftop(assessmentId: string): void {
-  sessionStorage.removeItem(getStorageKey(assessmentId));
+  try {
+    sessionStorage.removeItem(getStorageKey(assessmentId));
+    sessionStorage.removeItem(getBackupKey(assessmentId));
+  } catch (error) {
+    console.error('Failed to clear rooftop:', error);
+  }
 }

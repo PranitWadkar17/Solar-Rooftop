@@ -3,7 +3,7 @@
 // ============================================
 
 import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
-import type { AssessmentState, MapLayerType, LocationSource, BuildingFootprint } from '@/types/index.js';
+import type { AssessmentState, MapLayerType, LocationSource, BuildingFootprint, ElectricityConsumptionProfile } from '@/types/index.js';
 import { createAssessment, persistAssessment, loadAssessment, clearAssessment } from '@/services/assessmentService.js';
 
 // --- Actions ---
@@ -15,6 +15,8 @@ type AssessmentAction =
   | { type: 'SET_NEARBY_BUILDINGS'; payload: BuildingFootprint[] }
   | { type: 'SELECT_BUILDING'; payload: BuildingFootprint }
   | { type: 'DESELECT_BUILDING' }
+  | { type: 'SET_CONSUMPTION'; payload: ElectricityConsumptionProfile }
+  | { type: 'CLEAR_CONSUMPTION' }
   | { type: 'CONFIRM_SITE' }
   | { type: 'UNCONFIRM_SITE' }
   | { type: 'SET_MAP_LAYER'; payload: MapLayerType }
@@ -40,6 +42,7 @@ const defaultState: AssessmentState = {
   selectedBuildingName: null,
   selectedBuildingIsManual: false,
   nearbyBuildings: [],
+  consumption: null,
   mapLayer: 'street',
   mapCenter: { lat: 20, lng: 0 },
   mapZoom: 2,
@@ -101,6 +104,12 @@ function assessmentReducer(state: AssessmentState, action: AssessmentAction): As
         selectedBuildingIsManual: false,
         status: 'location_selected',
       };
+
+    case 'SET_CONSUMPTION':
+      return { ...state, consumption: action.payload, error: null };
+
+    case 'CLEAR_CONSUMPTION':
+      return { ...state, consumption: null };
 
     case 'CONFIRM_SITE':
       return { ...state, locationConfirmed: true, status: 'site_confirmed' };
@@ -198,6 +207,17 @@ export function useAssessment() {
     [dispatch]
   );
 
+  const setConsumption = useCallback(
+    (profile: ElectricityConsumptionProfile) => {
+      dispatch({ type: 'SET_CONSUMPTION', payload: profile });
+    },
+    [dispatch]
+  );
+
+  const clearConsumption = useCallback(() => {
+    dispatch({ type: 'CLEAR_CONSUMPTION' });
+  }, [dispatch]);
+
   const confirmSite = useCallback(() => {
     dispatch({ type: 'CONFIRM_SITE' });
   }, [dispatch]);
@@ -211,6 +231,8 @@ export function useAssessment() {
     dispatch,
     selectLocation,
     selectBuilding,
+    setConsumption,
+    clearConsumption,
     confirmSite,
     resetAssessment,
   };

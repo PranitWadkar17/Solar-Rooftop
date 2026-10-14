@@ -1,5 +1,6 @@
 // ============================================
 // Irradiance Engine — Solar Zones, Shading Losses & User Selection Area
+// Enhanced with diffuse radiation modeling and atmospheric effects
 // ============================================
 
 import type { Rooftop, Obstacle } from '@/types/rooftop.js';
@@ -28,11 +29,50 @@ const EARTH_RADIUS = 6378137;
 export const DEFAULT_SOLAR_ASSUMPTIONS: SolarAssumptions = {
   highThresholdPct: 80,
   mediumThresholdPct: 60,
-  gridResolutionMeters: 1.5,
+  gridResolutionMeters: 1.0, // Increased resolution from 1.5m to 1.0m for better accuracy
   defaultObstacleHeightMeters: 1.5,
   albedoGroundReflectance: 0.20,
   soilingLossAssumptionPct: 2.0,
 };
+
+/**
+ * Enhanced atmospheric transmittance model accounting for air mass and turbidity
+ * @param elevation Solar elevation in degrees
+ * @param turbidity Linke turbidity factor (2-6, typical 3-4)
+ */
+function calculateAtmosphericTransmittance(elevation: number, turbidity: number = 3.5): number {
+  if (elevation <= 0) return 0;
+  
+  // Air mass calculation (Kasten & Young formula)
+  const elevationRad = elevation * DEG_TO_RAD;
+  const airMass = 1 / (Math.sin(elevationRad) + 0.50572 * Math.pow(elevation + 6.07995, -1.6364));
+  
+  // Simplified atmospheric transmittance (Bird & Hulstrom model)
+  const tau = Math.exp(-turbidity * airMass / 10);
+  
+  // Direct beam transmittance
+  const tauDirect = 0.56 * (Math.exp(-0.65 * airMass) + Math.exp(-0.095 * airMass));
+  
+  // Combined transmittance (direct + diffuse component)
+  return Math.max(0.1, Math.min(1.0, 0.7 * tauDirect + 0.3 * tau));
+}
+
+/**
+ * Estimates diffuse radiation fraction based on clearness index and sun angle
+ * @param clearnessIndex Ratio of global to extraterrestrial radiation (0-1)
+ * @param elevation Solar elevation in degrees
+ */
+function calculateDiffuseFraction(clearnessIndex: number, _elevation: number): number {
+  // Erbs correlation for diffuse fraction
+  if (clearnessIndex <= 0.22) {
+    return 1.0 - 0.09 * clearnessIndex;
+  } else if (clearnessIndex <= 0.80) {
+    return 0.9511 - 0.1604 * clearnessIndex + 4.388 * Math.pow(clearnessIndex, 2) - 
+           16.638 * Math.pow(clearnessIndex, 3) + 12.336 * Math.pow(clearnessIndex, 4);
+  } else {
+    return 0.165;
+  }
+}
 
 /**
  * Computes transposition factor based on roof tilt & azimuth relative to equator.
@@ -52,6 +92,7 @@ function computeOrientationTiltFactor(azimuth: number | null, tilt: number | nul
 
 /**
  * Generates smooth solar irradiance potential zones and calculates solar-effective area.
+ * Enhanced with atmospheric effects and diffuse radiation modeling.
  * Strictly guarantees: Total Roof Area >= Physical Usable Area >= Solar-Effective Area.
  */
 export function generateSolarAnalysisZones(
@@ -70,27 +111,40 @@ export function generateSolarAnalysisZones(
   const [south, north, west, east] = rooftop.boundingBox;
   const centerLat = rooftop.centroid.lat;
 
-  // Grid step for sampling (internal calculation only, not rendered as square panels)
+  // Enhanced grid resolution
   const latStep = (assumptions.gridResolutionMeters / EARTH_RADIUS) * RAD_TO_DEG;
   const lngStep = latStep / Math.cos(centerLat * DEG_TO_RAD);
 
+  // More comprehensive temporal sampling for better accuracy
   const dates = getSeasonalDatePresets();
-  const sampleTimes = [480, 600, 720, 840, 960]; // 08:00, 10:00, 12:00, 14:00, 16:00
+  const sampleTimes = [360, 480, 600, 720, 840, 960, 1080]; // 06:00-18:00 every 2 hours
   const seasonalDates = [dates.summer, dates.monsoon, dates.winter, dates.equinox];
 
-  const sampleShadowsMap: { shadows: ReturnType<typeof calculateProjectedShadows> }[] = [];
+  // Pre-calculate shadow maps with atmospheric effects
+  interface ShadowSample {
+    shadows: ReturnType<typeof calculateProjectedShadows>;
+    transmittance: number;
+    diffuseFraction: number;
+    weight: number; // Irradiance weight based on sun angle
+  }
+  
+  const sampleShadowsMap: ShadowSample[] = [];
   for (const d of seasonalDates) {
     for (const t of sampleTimes) {
       const sun = calculateSunPosition(centerLat, rooftop.centroid.lng, d, t);
-      if (sun.isDaylight) {
+      if (sun.isDaylight && sun.elevation > 5) { // Only sample when sun is meaningfully above horizon
         const shadows = calculateProjectedShadows(obstacles, sun.azimuth, sun.elevation, assumptions.defaultObstacleHeightMeters);
-        sampleShadowsMap.push({ shadows });
+        const transmittance = calculateAtmosphericTransmittance(sun.elevation);
+        const diffuseFraction = calculateDiffuseFraction(0.6, sun.elevation); // Assume moderate clearness
+        const weight = Math.sin(sun.elevation * DEG_TO_RAD); // Weight by sun intensity
+        
+        sampleShadowsMap.push({ shadows, transmittance, diffuseFraction, weight });
       }
     }
   }
 
   let totalSampleCount = 0;
-  let unshadedSampleTotal = 0;
+  let weightedSolarAccessSum = 0;
   let highSolarPointCount = 0;
   let medSolarPointCount = 0;
   let lowSolarPointCount = 0;
@@ -100,14 +154,28 @@ export function generateSolarAnalysisZones(
       const pt: [number, number] = [lng + lngStep / 2, lat + latStep / 2];
       if (!isPointInPolygon(pt, roofCoords)) continue;
 
-      let unshadedCount = 0;
+      let weightedUnshadedSum = 0;
+      let pointTotalWeight = 0;
+
       for (const sample of sampleShadowsMap) {
         const shadowCheck = isPointShaded(pt, sample.shadows);
-        if (!shadowCheck.isShaded) unshadedCount++;
+        
+        // Calculate effective irradiance considering both shading and atmospheric effects
+        let effectiveIrradiance = 0;
+        if (!shadowCheck.isShaded) {
+          // Direct component (affected by shading)
+          const directComponent = (1 - sample.diffuseFraction) * sample.transmittance;
+          effectiveIrradiance = directComponent;
+        }
+        // Diffuse component (always present, even in shade)
+        const diffuseComponent = sample.diffuseFraction * sample.transmittance * 0.5; // Reduced in shade
+        effectiveIrradiance += diffuseComponent;
+        
+        weightedUnshadedSum += effectiveIrradiance * sample.weight;
+        pointTotalWeight += sample.weight;
       }
 
-      const totalIntervals = Math.max(1, sampleShadowsMap.length);
-      const pointAccessPct = (unshadedCount / totalIntervals) * 100;
+      const pointAccessPct = (weightedUnshadedSum / Math.max(0.01, pointTotalWeight)) * 100;
 
       if (pointAccessPct >= assumptions.highThresholdPct) {
         highSolarPointCount++;
@@ -117,13 +185,13 @@ export function generateSolarAnalysisZones(
         lowSolarPointCount++;
       }
 
-      unshadedSampleTotal += pointAccessPct;
+      weightedSolarAccessSum += pointAccessPct;
       totalSampleCount++;
     }
   }
 
   const validSampleCount = Math.max(1, totalSampleCount);
-  const avgSolarAccess = Math.round(unshadedSampleTotal / validSampleCount);
+  const avgSolarAccess = Math.round(weightedSolarAccessSum / validSampleCount);
   const avgShadingLoss = Math.max(0, 100 - avgSolarAccess);
 
   // Solar-effective fraction of physical usable roof

@@ -5,6 +5,7 @@
 import React, { createContext, useContext, useReducer, useEffect, useMemo, useCallback } from 'react';
 import type { Rooftop } from '@/types/rooftop.js';
 import type { SolarAnalysis } from '@/types/solar.js';
+import type { ElectricityConsumptionProfile } from '@/types/index.js';
 import type {
   PanelLayout,
   PanelSpecification,
@@ -20,6 +21,7 @@ import {
 } from '@/services/panelOptimizationService';
 import { savePanelLayout, isLayoutOutdated } from '@/services/optimizationService';
 import { DEFAULT_PANEL_LIBRARY } from '@/data/panelLibrary';
+import { extractConsumptionFromImage } from '@/services/billExtractionService';
 
 // --- Actions ---
 
@@ -37,7 +39,8 @@ type OptimizationAction =
   | { type: 'TOGGLE_LOCK' }
   | { type: 'UNDO' }
   | { type: 'REDO' }
-  | { type: 'TOGGLE_LAYER'; payload: keyof Pick<OptimizationWorkspaceState, 'showPanels' | 'showRoofBoundary' | 'showObstacles' | 'showSolarLayer' | 'showSelectedArea'> };
+  | { type: 'TOGGLE_LAYER'; payload: keyof Pick<OptimizationWorkspaceState, 'showPanels' | 'showRoofBoundary' | 'showObstacles' | 'showSolarLayer' | 'showSelectedArea'> }
+  | { type: 'SET_CONSUMPTION'; payload: ElectricityConsumptionProfile | null };
 
 // --- Initial State ---
 
@@ -57,6 +60,7 @@ const initialState: OptimizationWorkspaceState = {
   showObstacles: true,
   showSolarLayer: true,
   showSelectedArea: true,
+  consumption: null,
 };
 
 // --- Reducer ---
@@ -208,6 +212,9 @@ function optimizationReducer(
     case 'TOGGLE_LAYER':
       return { ...state, [action.payload]: !state[action.payload] };
 
+    case 'SET_CONSUMPTION':
+      return { ...state, consumption: action.payload };
+
     default:
       return state;
   }
@@ -222,10 +229,13 @@ interface OptimizationContextValue {
   selectedPanel: PanelInstance | null;
   panelSpec: PanelSpecification;
   constraints: DesignConstraints;
+  consumption: ElectricityConsumptionProfile | null;
   changePanelSpec: (spec: PanelSpecification) => void;
   updateConstraints: (newConstraints: Partial<DesignConstraints>) => void;
   reoptimize: (objective?: OptimizationObjective) => void;
   finalizeLayout: () => void;
+  uploadBill: (file: File) => Promise<void>;
+  removeBill: () => void;
 }
 
 const OptimizationContext = createContext<OptimizationContextValue | null>(null);
@@ -364,6 +374,47 @@ export function OptimizationProvider({
     savePanelLayout(finalized);
   }, [activeLayout]);
 
+  // Upload electricity bill and extract consumption
+  const uploadBill = useCallback(async (file: File) => {
+    try {
+      const consumptionProfile = await extractConsumptionFromImage(file);
+      dispatch({ type: 'SET_CONSUMPTION', payload: consumptionProfile });
+      
+      // Regenerate layouts with consumption-aware option
+      if (rooftop && solarAnalysis?.selectedArea) {
+        const candidateLayouts = generateCandidateLayouts(
+          rooftop,
+          solarAnalysis.selectedArea,
+          panelSpec,
+          constraints,
+          solarAnalysis,
+          consumptionProfile
+        );
+        dispatch({ type: 'INIT_LAYOUTS', payload: candidateLayouts });
+      }
+    } catch (error) {
+      throw new Error(error instanceof Error ? error.message : 'Failed to extract consumption data from bill');
+    }
+  }, [rooftop, solarAnalysis, panelSpec, constraints]);
+
+  // Remove bill and regenerate layouts without consumption
+  const removeBill = useCallback(() => {
+    dispatch({ type: 'SET_CONSUMPTION', payload: null });
+    
+    // Regenerate layouts without consumption option
+    if (rooftop && solarAnalysis?.selectedArea) {
+      const candidateLayouts = generateCandidateLayouts(
+        rooftop,
+        solarAnalysis.selectedArea,
+        panelSpec,
+        constraints,
+        solarAnalysis,
+        null
+      );
+      dispatch({ type: 'INIT_LAYOUTS', payload: candidateLayouts });
+    }
+  }, [rooftop, solarAnalysis, panelSpec, constraints]);
+
   return (
     <OptimizationContext.Provider
       value={{
@@ -373,10 +424,13 @@ export function OptimizationProvider({
         selectedPanel,
         panelSpec,
         constraints,
+        consumption: state.consumption,
         changePanelSpec,
         updateConstraints,
         reoptimize,
         finalizeLayout,
+        uploadBill,
+        removeBill,
       }}
     >
       {children}

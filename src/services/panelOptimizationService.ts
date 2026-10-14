@@ -1,5 +1,6 @@
 import type { Rooftop, Obstacle } from '@/types/rooftop.js';
 import type { SolarAnalysis, SelectedSolarArea } from '@/types/solar.js';
+import type { ElectricityConsumptionProfile } from '@/types/index.js';
 import type {
   PanelSpecification,
   DesignConstraints,
@@ -8,17 +9,149 @@ import type {
   PanelLayout,
 } from '@/types/optimization.js';
 import { isPointInPolygon } from '@/utils/geoUtils';
+import { calculateRequiredPanelCount } from '@/utils/consumptionUtils';
 
 const DEG_TO_RAD = Math.PI / 180;
 const EARTH_RADIUS = 6378137;
+
+// --- Building Code and Structural Constraints ---
+
+export interface StructuralValidation {
+  loadCapacityCheck: 'pass' | 'warning' | 'fail';
+  windZoneCompliance: 'pass' | 'unknown';
+  fireAccessCompliance: 'pass' | 'warning';
+  issues: string[];
+  recommendations: string[];
+}
+
+export interface CodeCompliance {
+  edgeClearance: { required: number; actual: number; compliant: boolean };
+  obstacleClearance: { required: number; actual: number; compliant: boolean };
+  walkwayWidth: { required: number; actual: number; compliant: boolean };
+  fireAccess: { required: boolean; provided: boolean; compliant: boolean };
+  structuralLoad: { maxKgPerSqM: number; actualKgPerSqM: number; compliant: boolean };
+}
+
+/**
+ * Validates structural suitability for solar panel installation
+ * Based on typical rooftop solar structural requirements
+ */
+function validateStructuralRequirements(
+  rooftop: Rooftop,
+  panelCount: number,
+  _panelSpec: PanelSpecification,
+): StructuralValidation {
+  const issues: string[] = [];
+  const recommendations: string[] = [];
+  
+  // Estimate panel weight: typical solar panel ~20-25 kg + mounting ~10 kg
+  const avgPanelWeightKg = 22;
+  const mountingWeightKg = 10;
+  const totalWeightKg = panelCount * (avgPanelWeightKg + mountingWeightKg);
+  const roofArea = rooftop.area;
+  const loadPerSqM = totalWeightKg / roofArea;
+  
+  // Typical flat roof load capacity: 150-300 kg/m² (residential), 300-500 kg/m² (commercial)
+  // Solar system typically adds 15-25 kg/m²
+  const typicalSolarLoadKgPerSqM = 20;
+  const maxRecommendedLoad = 25; // Conservative threshold
+  
+  let loadCapacityCheck: 'pass' | 'warning' | 'fail' = 'pass';
+  
+  if (loadPerSqM > maxRecommendedLoad) {
+    loadCapacityCheck = 'warning';
+    issues.push(`Estimated load (${loadPerSqM.toFixed(1)} kg/m²) exceeds typical solar load capacity. Structural engineer assessment required.`);
+  } else if (loadPerSqM > typicalSolarLoadKgPerSqM) {
+    recommendations.push(`Load approaches ${loadPerSqM.toFixed(1)} kg/m². Verify roof structural capacity before installation.`);
+  }
+  
+  // Wind zone compliance (cannot determine without location-specific data)
+  const windZoneCompliance: 'pass' | 'unknown' = 'unknown';
+  recommendations.push('Verify wind load calculations per local building codes (ASCE 7 or equivalent).');
+  
+  // Fire access compliance (check for sufficient walkways)
+  let fireAccessCompliance: 'pass' | 'warning' = 'pass';
+  const roofDiagonal = Math.sqrt(2 * roofArea); // Rough estimate
+  
+  if (roofArea > 1000) { // Large commercial roof
+    recommendations.push('Large roof area detected. Ensure 1.2m wide access pathways per fire code requirements.');
+  }
+  
+  if (roofDiagonal > 75) { // Very large building
+    fireAccessCompliance = 'warning';
+    issues.push('Building dimensions suggest fire code may require 6ft (1.8m) wide access pathways and equipment access zones.');
+  }
+  
+  // Roof type considerations
+  if (rooftop.roofType === 'unknown') {
+    recommendations.push('Roof type not confirmed. Verify mounting system compatibility with actual roof structure.');
+  }
+  
+  return {
+    loadCapacityCheck,
+    windZoneCompliance,
+    fireAccessCompliance,
+    issues,
+    recommendations,
+  };
+}
+
+/**
+ * Validates compliance with building codes and installation standards
+ */
+function validateCodeCompliance(
+  constraints: DesignConstraints,
+  panelLayout: { panels: PanelInstance[]; occupiedAreaSqM: number },
+  selectedArea: SelectedSolarArea,
+): CodeCompliance {
+  // IBC / IRC typical requirements for rooftop solar
+  const requiredEdgeClearance = 0.9; // 3 ft typical setback from parapet
+  const requiredObstacleClearance = 0.6; // 2 ft clearance from obstacles
+  const requiredWalkwayWidth = 0.9; // 3 ft minimum walkway
+  const requiredFireAccess = selectedArea.area > 500; // >500m² typically requires access
+  
+  // Structural load limits (conservative residential assumption)
+  const maxStructuralLoadKgPerSqM = 25;
+  const avgPanelKg = 22;
+  const mountingKg = 10;
+  const actualLoadKgPerSqM = (panelLayout.panels.length * (avgPanelKg + mountingKg)) / selectedArea.area;
+  
+  return {
+    edgeClearance: {
+      required: requiredEdgeClearance,
+      actual: constraints.edgeClearanceM,
+      compliant: constraints.edgeClearanceM >= requiredEdgeClearance * 0.9, // 10% tolerance
+    },
+    obstacleClearance: {
+      required: requiredObstacleClearance,
+      actual: constraints.obstacleClearanceM,
+      compliant: constraints.obstacleClearanceM >= requiredObstacleClearance * 0.9,
+    },
+    walkwayWidth: {
+      required: requiredWalkwayWidth,
+      actual: constraints.rowSpacingM,
+      compliant: constraints.rowSpacingM >= requiredWalkwayWidth * 0.8, // Walkway can be narrower than row spacing
+    },
+    fireAccess: {
+      required: requiredFireAccess,
+      provided: constraints.edgeClearanceM >= 0.9 && constraints.rowSpacingM >= 0.8,
+      compliant: !requiredFireAccess || (constraints.edgeClearanceM >= 0.9 && constraints.rowSpacingM >= 0.8),
+    },
+    structuralLoad: {
+      maxKgPerSqM: maxStructuralLoadKgPerSqM,
+      actualKgPerSqM: Math.round(actualLoadKgPerSqM * 10) / 10,
+      compliant: actualLoadKgPerSqM <= maxStructuralLoadKgPerSqM,
+    },
+  };
+}
 
 export const DEFAULT_DESIGN_CONSTRAINTS: DesignConstraints = {
   orientation: 'portrait',
   tiltDeg: 15,
   azimuthDeg: 180, // Default South-facing
-  edgeClearanceM: 0.5,
-  obstacleClearanceM: 0.3,
-  rowSpacingM: 0.7,
+  edgeClearanceM: 0.9, // Increased from 0.5 for code compliance
+  obstacleClearanceM: 0.6, // Increased from 0.3 for safety
+  rowSpacingM: 0.9, // Increased from 0.7 for walkway access
   panelSpacingM: 0.02,
   maxPanelCount: null,
   targetCapacityKWp: null,
@@ -226,6 +359,7 @@ export function generateArrayPlacement(
 
 /**
  * Evaluates scores and validates constraints for a candidate panel layout.
+ * Enhanced with structural validation and code compliance checks.
  */
 export function evaluateLayout(
   layoutId: string,
@@ -248,7 +382,7 @@ export function evaluateLayout(
 
   const systemCapacityKWp = Math.round(((activePanelCount * panelSpec.ratedPowerW) / 1000) * 100) / 100;
 
-  // Validation
+  // Enhanced validation with structural and code compliance
   const issues: string[] = [];
   const warnings: string[] = [];
 
@@ -256,22 +390,71 @@ export function evaluateLayout(
     issues.push('No valid panels could be placed within the selected area constraints.');
   }
 
+  // Structural validation
+  const structuralValidation = validateStructuralRequirements(rooftop, activePanelCount, panelSpec);
+  if (structuralValidation.loadCapacityCheck === 'fail') {
+    issues.push(...structuralValidation.issues.filter(i => i.includes('exceeds')));
+  } else if (structuralValidation.loadCapacityCheck === 'warning') {
+    warnings.push(...structuralValidation.issues);
+  }
+  warnings.push(...structuralValidation.recommendations);
+
+  // Code compliance validation
+  const codeCompliance = validateCodeCompliance(
+    constraints,
+    { panels: activePanels, occupiedAreaSqM },
+    selectedArea
+  );
+
+  if (!codeCompliance.edgeClearance.compliant) {
+    warnings.push(`Edge clearance (${codeCompliance.edgeClearance.actual}m) below recommended ${codeCompliance.edgeClearance.required}m. Verify local code requirements.`);
+  }
+
+  if (!codeCompliance.obstacleClearance.compliant) {
+    warnings.push(`Obstacle clearance (${codeCompliance.obstacleClearance.actual}m) below recommended ${codeCompliance.obstacleClearance.required}m.`);
+  }
+
+  if (!codeCompliance.fireAccess.compliant) {
+    warnings.push('Fire access pathways may not meet local code requirements for roofs >500m². Verify with local AHJ.');
+  }
+
+  if (!codeCompliance.structuralLoad.compliant) {
+    issues.push(`Structural load (${codeCompliance.structuralLoad.actualKgPerSqM} kg/m²) exceeds conservative limit. Structural engineer evaluation required.`);
+  }
+
   if (selectedArea.obstacleConflicts > 0) {
     warnings.push('Selected area contains marked obstacles; panels were routed around clearance buffers.');
   }
 
   if (utilizationPct > 85) {
-    warnings.push('High roof packing density; verify maintenance walkway clearances.');
+    warnings.push('High roof packing density; verify maintenance walkway clearances per local fire code.');
+  }
+
+  // Panel spacing validation
+  if (constraints.rowSpacingM < 0.5) {
+    warnings.push('Row spacing <0.5m may cause inter-row shading and restrict maintenance access.');
+  }
+
+  // Tilt validation
+  if (constraints.tiltDeg < 5) {
+    warnings.push('Very low tilt angle may cause water pooling and reduced cleaning efficiency.');
+  } else if (constraints.tiltDeg > 35) {
+    warnings.push('High tilt angle increases wind load and may require additional ballast.');
   }
 
   const isValid = issues.length === 0;
 
-  // Score breakdown
+  // Enhanced score breakdown with code compliance factor
   const solarQuality = solarAnalysis ? Math.min(100, Math.round(solarAnalysis.avgSolarAccessPct)) : 90;
-  const spatialEfficiency = Math.min(100, Math.round(utilizationPct * 1.2));
-  const compliance = isValid ? 100 : 40;
+  const spatialEfficiency = Math.min(100, Math.round(utilizationPct * 1.1)); // Slight bonus for good utilization
+  const complianceScore = isValid ? (
+    (codeCompliance.edgeClearance.compliant ? 25 : 15) +
+    (codeCompliance.obstacleClearance.compliant ? 25 : 15) +
+    (codeCompliance.fireAccess.compliant ? 25 : 15) +
+    (codeCompliance.structuralLoad.compliant ? 25 : 10)
+  ) : 40;
 
-  const layoutScore = Math.round(solarQuality * 0.45 + spatialEfficiency * 0.35 + compliance * 0.20);
+  const layoutScore = Math.round(solarQuality * 0.40 + spatialEfficiency * 0.30 + complianceScore * 0.30);
 
   const now = new Date().toISOString();
 
@@ -295,13 +478,15 @@ export function evaluateLayout(
     scoreBreakdown: {
       solarQuality,
       spatialEfficiency,
-      compliance,
+      compliance: complianceScore,
     },
     validation: {
       isValid,
       issues,
       warnings,
     },
+    structuralValidation,
+    codeCompliance,
     isLocked: false,
     isFinal: false,
     createdAt: now,
@@ -310,7 +495,8 @@ export function evaluateLayout(
 }
 
 /**
- * Generates all candidate layout alternatives (e.g. Max Generation, Max Capacity, Balanced).
+ * Generates all candidate layout alternatives with optimized constraints.
+ * Enhanced with code-compliant spacing and structural considerations.
  */
 export function generateCandidateLayouts(
   rooftop: Rooftop,
@@ -318,16 +504,23 @@ export function generateCandidateLayouts(
   panelSpec: PanelSpecification,
   constraints: DesignConstraints = DEFAULT_DESIGN_CONSTRAINTS,
   solarAnalysis?: SolarAnalysis | null,
+  consumption?: ElectricityConsumptionProfile | null,
 ): PanelLayout[] {
   const layouts: PanelLayout[] = [];
 
-  // Layout A: Maximum Generation (Standard Portrait, South-facing 180°, 0.8m row pitch)
+  // Layout A: Maximum Generation (Optimized for energy output)
+  // - Portrait orientation for better summer performance
+  // - Increased tilt for optimal angle
+  // - Wider row spacing to minimize shading
   const constrGen: DesignConstraints = {
     ...constraints,
     orientation: 'portrait',
     azimuthDeg: 180,
-    tiltDeg: 18,
-    rowSpacingM: 0.8,
+    tiltDeg: 20, // Increased from 18 for better performance
+    rowSpacingM: 1.0, // Increased from 0.8 for less shading
+    edgeClearanceM: 0.9, // Code compliant
+    obstacleClearanceM: 0.6, // Safety margin
+    panelSpacingM: 0.03, // Adequate module gap
   };
   const panelsGen = generateArrayPlacement(rooftop, selectedArea, panelSpec, constrGen, solarAnalysis);
   layouts.push(
@@ -344,13 +537,18 @@ export function generateCandidateLayouts(
     )
   );
 
-  // Layout B: Maximum Capacity (Landscape, tight 0.5m row pitch for maximum modules)
+  // Layout B: Maximum Capacity (Optimized for panel count)
+  // - Landscape orientation for better packing
+  // - Lower tilt to reduce footprint
+  // - Tighter spacing while maintaining access
   const constrCap: DesignConstraints = {
     ...constraints,
     orientation: 'landscape',
     azimuthDeg: 180,
-    tiltDeg: 12,
-    rowSpacingM: 0.5,
+    tiltDeg: 10, // Reduced from 12 for better packing
+    rowSpacingM: 0.7, // Minimum practical spacing
+    edgeClearanceM: 0.75, // Slightly reduced but safe
+    obstacleClearanceM: 0.5, // Minimum safe distance
     panelSpacingM: 0.02,
   };
   const panelsCap = generateArrayPlacement(rooftop, selectedArea, panelSpec, constrCap, solarAnalysis);
@@ -368,14 +566,19 @@ export function generateCandidateLayouts(
     )
   );
 
-  // Layout C: Balanced (Optimal yield and walkway access)
+  // Layout C: Balanced (Optimized for practical installation and maintenance)
+  // - Portrait orientation (standard)
+  // - Moderate tilt
+  // - Code-compliant spacing for walkways and access
   const constrBal: DesignConstraints = {
     ...constraints,
     orientation: 'portrait',
     azimuthDeg: 180,
     tiltDeg: 15,
-    rowSpacingM: 0.7,
-    edgeClearanceM: 0.6,
+    rowSpacingM: 0.9, // Full walkway width
+    edgeClearanceM: 0.9, // Fire code compliant
+    obstacleClearanceM: 0.6, // Safe clearance
+    panelSpacingM: 0.03, // Adequate drainage gap
   };
   const panelsBal = generateArrayPlacement(rooftop, selectedArea, panelSpec, constrBal, solarAnalysis);
   layouts.push(
@@ -391,6 +594,60 @@ export function generateCandidateLayouts(
       solarAnalysis,
     )
   );
+
+  // Layout D: Consumption-Optimized (Only if consumption data is available)
+  // - Generate only the number of panels needed for consumption
+  // - Use balanced constraints for practical installation
+  if (consumption && consumption.annualKwh) {
+    // Calculate solar resource: peakSunHoursAnnual is essentially kWh/m²/year
+    // For PV systems, we convert this to kWh/kWp by considering typical system factors
+    // Standard assumption: 1 kWp system with optimal orientation yields ~peakSunHours × 365 kWh/year
+    const solarResourceKwhPerKwp = solarAnalysis?.peakSunHoursAnnual 
+      ? solarAnalysis.peakSunHoursAnnual * 365 
+      : 1450; // Default for moderate climate
+    
+    const requiredPanelCount = calculateRequiredPanelCount(
+      consumption,
+      panelSpec,
+      solarResourceKwhPerKwp
+    );
+
+    if (requiredPanelCount && requiredPanelCount > 0) {
+      const constrConsumption: DesignConstraints = {
+        ...constraints,
+        orientation: 'portrait',
+        azimuthDeg: 180,
+        tiltDeg: 15,
+        rowSpacingM: 0.9,
+        edgeClearanceM: 0.9,
+        obstacleClearanceM: 0.6,
+        panelSpacingM: 0.03,
+        maxPanelCount: requiredPanelCount, // Limit to required count
+      };
+      
+      const panelsConsumption = generateArrayPlacement(
+        rooftop,
+        selectedArea,
+        panelSpec,
+        constrConsumption,
+        solarAnalysis
+      );
+      
+      layouts.push(
+        evaluateLayout(
+          'layout-consumption',
+          `Layout D — Consumption Match (${requiredPanelCount} panels)`,
+          'consumption_optimized' as OptimizationObjective,
+          rooftop,
+          selectedArea,
+          panelSpec,
+          constrConsumption,
+          panelsConsumption,
+          solarAnalysis,
+        )
+      );
+    }
+  }
 
   return layouts;
 }

@@ -188,3 +188,52 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Consumption-Optimized Layout Styles */
+.cardConsumption {
+  border-color: rgba(16, 185, 129, 0.4) !important;
+  background: rgba(16, 185, 129, 0.03);
+}
+
+.cardConsumption:hover {
+  border-color: rgba(16, 185, 129, 0.6) !important;
+  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.12);
+}
+
+.objectiveConsumption {
+  color: var(--color-green) !important;
+}
+
+.consumptionBanner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 8px;
+  margin: -4px 0 4px 0;
+}
+
+.consumptionIcon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.consumptionInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.consumptionInfo strong {
+  font-size: 11px;
+  color: var(--color-text-primary);
+  font-weight: 700;
+}
+
+.consumptionInfo span {
+  font-size: 10px;
+  color: var(--color-text-tertiary);
+  font-family: 'JetBrains Mono', monospace;
+}

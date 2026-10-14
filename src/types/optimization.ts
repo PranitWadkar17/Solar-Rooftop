@@ -8,7 +8,8 @@ export type OptimizationObjective =
   | 'max_generation'
   | 'max_capacity'
   | 'best_utilization'
-  | 'balanced';
+  | 'balanced'
+  | 'consumption_optimized';
 
 export type OptimizationToolMode = 'select' | 'delete' | 'move';
 
@@ -100,6 +101,20 @@ export interface PanelLayout {
   layoutScore: number;       // Weighted 0 - 100 score
   scoreBreakdown: LayoutScoreBreakdown;
   validation: LayoutValidation;
+  structuralValidation?: {
+    loadCapacityCheck: 'pass' | 'warning' | 'fail';
+    windZoneCompliance: 'pass' | 'unknown';
+    fireAccessCompliance: 'pass' | 'warning';
+    issues: string[];
+    recommendations: string[];
+  };
+  codeCompliance?: {
+    edgeClearance: { required: number; actual: number; compliant: boolean };
+    obstacleClearance: { required: number; actual: number; compliant: boolean };
+    walkwayWidth: { required: number; actual: number; compliant: boolean };
+    fireAccess: { required: boolean; provided: boolean; compliant: boolean };
+    structuralLoad: { maxKgPerSqM: number; actualKgPerSqM: number; compliant: boolean };
+  };
   isLocked: boolean;
   isFinal: boolean;
   createdAt: string;
@@ -126,4 +141,6 @@ export interface OptimizationWorkspaceState {
   showObstacles: boolean;
   showSolarLayer: boolean;
   showSelectedArea: boolean;
+  // Consumption data
+  consumption: import('@/types/index.js').ElectricityConsumptionProfile | null;
 }

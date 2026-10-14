@@ -7,7 +7,7 @@ interface LayoutComparisonModalProps {
 }
 
 export function LayoutComparisonModal({ isOpen, onClose }: LayoutComparisonModalProps) {
-  const { state, dispatch } = useOptimization();
+  const { state, dispatch, consumption } = useOptimization();
   const { layouts, activeLayoutId } = state;
 
   if (!isOpen) return null;
@@ -19,7 +19,7 @@ export function LayoutComparisonModal({ isOpen, onClose }: LayoutComparisonModal
           <div>
             <h2 className={styles.title}>Compare Candidate Array Layouts</h2>
             <p className={styles.subtitle}>
-              Evaluate trade-offs between solar yield generation, peak DC capacity, and roof space utilization.
+              Evaluate trade-offs between solar yield generation, peak DC capacity, roof space utilization, and consumption matching.
             </p>
           </div>
           <button className={styles.closeBtn} onClick={onClose} aria-label="Close modal">
@@ -30,18 +30,32 @@ export function LayoutComparisonModal({ isOpen, onClose }: LayoutComparisonModal
         <div className={styles.grid}>
           {layouts.map((layout) => {
             const isCurrent = layout.id === activeLayoutId;
+            const isConsumptionOptimized = layout.objective === 'consumption_optimized';
+            
             return (
               <div
                 key={layout.id}
-                className={`${styles.card} ${isCurrent ? styles.cardActive : ''}`}
+                className={`${styles.card} ${isCurrent ? styles.cardActive : ''} ${isConsumptionOptimized ? styles.cardConsumption : ''}`}
               >
                 <div className={styles.cardHeader}>
                   <div>
                     <strong className={styles.cardName}>{layout.name}</strong>
-                    <span className={styles.objectiveTag}>{layout.objective.replace(/_/g, ' ').toUpperCase()}</span>
+                    <span className={`${styles.objectiveTag} ${isConsumptionOptimized ? styles.objectiveConsumption : ''}`}>
+                      {layout.objective.replace(/_/g, ' ').toUpperCase()}
+                    </span>
                   </div>
                   {isCurrent && <span className={styles.activeBadge}>Current Layout</span>}
                 </div>
+
+                {isConsumptionOptimized && consumption && (
+                  <div className={styles.consumptionBanner}>
+                    <span className={styles.consumptionIcon}>💡</span>
+                    <div className={styles.consumptionInfo}>
+                      <strong>Matched to Your Consumption</strong>
+                      <span>{consumption.annualKwh?.toLocaleString()} kWh/year target</span>
+                    </div>
+                  </div>
+                )}
 
                 <div className={styles.metricsList}>
                   <div className={styles.metricRow}>

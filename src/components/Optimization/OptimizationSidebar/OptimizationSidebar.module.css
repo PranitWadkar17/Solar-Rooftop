@@ -520,3 +520,145 @@
     border-top: var(--border-light);
   }
 }
+
+/* Bill Upload Styles */
+.billDescription {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  margin: 0 0 10px 0;
+  line-height: 1.5;
+}
+
+.billUploadLabel {
+  display: block;
+  cursor: pointer;
+}
+
+.billUploadInput {
+  display: none;
+}
+
+.billUploadButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px;
+  background: var(--color-bg-main);
+  border: 2px dashed var(--color-border-subtle);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  transition: all 0.2s ease;
+}
+
+.billUploadButton:hover {
+  border-color: var(--color-solar);
+  color: var(--color-solar);
+  background: var(--color-solar-muted);
+}
+
+.uploadSpinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.uploadError {
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 6px;
+  font-size: 11px;
+  color: #ef4444;
+}
+
+.billSummary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.billHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background: var(--color-bg-main);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 8px;
+}
+
+.billIcon {
+  font-size: 18px;
+}
+
+.billInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.billInfo strong {
+  font-size: 11px;
+  color: var(--color-text-primary);
+}
+
+.billMeta {
+  font-size: 10px;
+  color: var(--color-text-tertiary);
+}
+
+.removeBillBtn {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 4px;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.15s ease;
+}
+
+.removeBillBtn:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+.consumptionHighlight {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px;
+  background: var(--color-solar-muted);
+  border: 1px solid var(--color-solar);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.consumptionLabel {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.consumptionValue {
+  font-size: 16px;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--color-solar);
+}

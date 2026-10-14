@@ -96,8 +96,32 @@ export interface BuildingFootprint {
     area?: number; // approximate area in sq meters
     isManual?: boolean; // true if manually drawn
     vertexCount?: number;
+    confidence?: number; // 0-100 quality score
+    dataQuality?: {
+      areaRealistic: boolean;
+      geometryValid: boolean;
+      dataFreshness: 'recent' | 'outdated' | 'unknown';
+      coordinateQuality: 'high' | 'medium' | 'low';
+      confidenceScore: number;
+    };
   };
   center: { lat: number; lng: number };
+}
+
+export type ConsumptionSource = 'manual' | 'bill_upload' | 'estimated';
+
+export interface MonthlyConsumption {
+  month: string;
+  kwh: number;
+}
+
+export interface ElectricityConsumptionProfile {
+  annualKwh: number | null;
+  monthlyKwh: MonthlyConsumption[];
+  source: ConsumptionSource;
+  confidence: number | null;
+  billFileName: string | null;
+  uploadedAt: string | null;
 }
 
 export interface AssessmentState {
@@ -117,6 +141,8 @@ export interface AssessmentState {
   selectedBuildingName: string | null;
   selectedBuildingIsManual: boolean;
   nearbyBuildings: BuildingFootprint[];
+  // Consumption
+  consumption: ElectricityConsumptionProfile | null;
   // Map
   mapLayer: MapLayerType;
   mapCenter: { lat: number; lng: number };
