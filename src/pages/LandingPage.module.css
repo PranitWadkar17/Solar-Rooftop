@@ -1,0 +1,31 @@
+/* ============================================
+   Landing Page — Scroll Frame Background Layout
+   ============================================ */
+
+.landingPage {
+  position: relative;
+  min-height: 100vh;
+}
+
+.mainContent {
+  position: relative;
+  z-index: 1;
+}
+
+/*
+  Sections wrapper: applies a semi-transparent frosted glass backdrop
+  so the frame animation subtly shows through all sections below the Hero.
+  This creates the "3D video in the background" effect across the whole page.
+*/
+.sectionsWrapper {
+  position: relative;
+  background: rgba(7, 10, 18, 0.88);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+:global([data-theme="day"]) .sectionsWrapper {
+  background: rgba(255, 255, 255, 0.88);
+  border-top-color: rgba(0, 0, 0, 0.06);
+}

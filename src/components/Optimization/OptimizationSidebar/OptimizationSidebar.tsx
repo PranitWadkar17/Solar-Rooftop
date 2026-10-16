@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useOptimization } from '@/context/OptimizationContext';
 import { DEFAULT_PANEL_LIBRARY } from '@/data/panelLibrary';
 import { formatArea } from '@/utils/geoUtils';
+import { calculateRequiredPanelCount } from '@/utils/consumptionUtils';
 import type { PanelOrientation, OptimizationObjective } from '@/types/optimization.js';
 import styles from './OptimizationSidebar.module.css';
 
@@ -23,33 +24,178 @@ export function OptimizationSidebar({ onProceedToEnergy, onOpenComparison }: Opt
     reoptimize,
     finalizeLayout,
     consumption,
-    uploadBill,
-    removeBill,
+    monthlyBillAmountInr,
+    tariffRateInr,
+    setMonthlyConsumption,
+    setMonthlyBillAmount,
+    clearConsumption,
+    placeMaxCapacityLayout,
+    maxPanelCount,
+    maxPotentialAnnualEnergyKwh,
+    solarResourceKwhPerKwp,
+    estimatedAnnualEnergyKwh,
+    isPlacing,
   } = useOptimization();
 
   const [activeTab, setActiveTab] = useState<'design' | 'metrics' | 'inspector'>('design');
-  const [isUploadingBill, setIsUploadingBill] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [consumptionInput, setConsumptionInput] = useState<string>('');
+  const [consumptionError, setConsumptionError] = useState<string | null>(null);
 
-  const handleBillUpload = async (file: File) => {
-    if (!file.type.startsWith('image/')) {
-      setUploadError('Please upload an image file (PNG, JPG, etc.)');
+  // Calculate the dynamic panel requirement from the current monthly bill
+  const panelAnalysis = useMemo(() => {
+    if (!consumption || !consumption.annualKwh) {
+      return null;
+    }
+
+    const rate = tariffRateInr || 8.0;
+    const billInr = consumption.monthlyBillAmountInr ?? Math.round((consumption.annualKwh / 12) * rate);
+    const monthlyKwh = Math.round(consumption.annualKwh / 12);
+    const requiredPanels = calculateRequiredPanelCount(consumption, panelSpec, solarResourceKwhPerKwp) ?? 0;
+    const maxCapacityKWp = Math.round(((maxPanelCount * panelSpec.ratedPowerW) / 1000) * 100) / 100;
+    const requiredCapacityKWp = Math.round(((requiredPanels * panelSpec.ratedPowerW) / 1000) * 100) / 100;
+    const canFitAll = requiredPanels <= maxPanelCount;
+    const estimatedMonthlyKwh = Math.round(estimatedAnnualEnergyKwh / 12);
+    const monthlySavingsInr = Math.min(billInr, Math.round(estimatedMonthlyKwh * rate));
+
+    return {
+      billInr,
+      monthlyKwh,
+      requiredPanels,
+      maxCapacityKWp,
+      requiredCapacityKWp,
+      canFitAll,
+      monthlySavingsInr,
+    };
+  }, [consumption, panelSpec, maxPanelCount, solarResourceKwhPerKwp, tariffRateInr, estimatedAnnualEnergyKwh]);
+
+  const handleConsumptionSubmit = () => {
+    const value = parseFloat(consumptionInput);
+    if (isNaN(value) || value < 1000) {
+      setConsumptionError('Minimum monthly bill is ₹1,000');
       return;
     }
-
-    setIsUploadingBill(true);
-    setUploadError(null);
-
-    try {
-      await uploadBill(file);
-    } catch (error) {
-      setUploadError(error instanceof Error ? error.message : 'Failed to extract consumption data');
-    } finally {
-      setIsUploadingBill(false);
-    }
+    setConsumptionError(null);
+    setMonthlyBillAmount(value);
   };
 
-  if (!activeLayout) return null;
+  const handleConsumptionReset = () => {
+    setConsumptionInput('');
+    setConsumptionError(null);
+    clearConsumption();
+  };
+
+  // If no layout is active yet (waiting for bill entry)
+  if (!activeLayout) {
+    const liveBill = parseFloat(consumptionInput);
+    const rate = tariffRateInr || 8.0;
+    const liveMonthlyKwh = !isNaN(liveBill) && liveBill > 0 ? Math.round(liveBill / rate) : 0;
+    const liveAnnualKwh = liveMonthlyKwh * 12;
+    const panelKWp = panelSpec.ratedPowerW / 1000;
+    const annualEnergyPerPanel = panelKWp * solarResourceKwhPerKwp * 0.78;
+    const liveRequired = liveAnnualKwh > 0 ? Math.ceil(liveAnnualKwh / annualEnergyPerPanel) : 0;
+    const livePlacingCount = Math.min(liveRequired, maxPanelCount > 0 ? maxPanelCount : liveRequired);
+    const liveCapacityKWp = Math.round(((livePlacingCount * panelSpec.ratedPowerW) / 1000) * 100) / 100;
+    const liveEstEnergy = Math.round(liveCapacityKWp * solarResourceKwhPerKwp * 0.78);
+    const liveSavings = Math.min(liveBill || 0, Math.round((liveEstEnergy / 12) * rate));
+
+    return (
+      <aside className={styles.sidebar} aria-label="Panel Optimization & Array Design Controls">
+        <div className={styles.content}>
+          <div className={styles.sectionCard}>
+            <div className={styles.cardHeader}>
+              <span className={styles.cardTitle}>⚡ Solar Sizing Setup</span>
+            </div>
+            <p className={styles.consumptionDescription}>
+              Enter your monthly electricity bill in Rupees (min. ₹1,000/month) to calculate and place the optimal solar array on your rooftop.
+            </p>
+
+            {/* Area Recommendation */}
+            <div className={styles.capacityGrid} style={{ marginBottom: '14px' }}>
+              <div className={styles.capacityItem}>
+                <span className={styles.capacityLabel}>Max Panels</span>
+                <strong className={styles.capacityValue}>{maxPanelCount}</strong>
+              </div>
+              <div className={styles.capacityItem}>
+                <span className={styles.capacityLabel}>Max Annual Energy</span>
+                <strong className={styles.capacityValueGreen}>
+                  {maxPotentialAnnualEnergyKwh.toLocaleString()} kWh
+                </strong>
+              </div>
+            </div>
+
+            {/* Bill Input */}
+            <div className={styles.consumptionInputGroup}>
+              <div className={styles.inputWrapper}>
+                <input
+                  type="number"
+                  className={styles.consumptionInput}
+                  placeholder="e.g. 1000"
+                  min="1000"
+                  step="100"
+                  value={consumptionInput}
+                  onChange={(e) => {
+                    setConsumptionInput(e.target.value);
+                    setConsumptionError(null);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleConsumptionSubmit();
+                  }}
+                />
+                <span className={styles.inputUnit}>₹ / mo</span>
+              </div>
+              <button
+                className={styles.consumptionSubmitBtn}
+                onClick={handleConsumptionSubmit}
+                disabled={!consumptionInput || isPlacing}
+              >
+                {isPlacing ? 'Placing Panels...' : `Place ${livePlacingCount > 0 ? livePlacingCount : ''} Panels on Rooftop`}
+              </button>
+            </div>
+
+            <span className={styles.inputHint}>Minimum requirement: ₹1,000/month bill</span>
+
+            {consumptionError && (
+              <div className={styles.consumptionError}>
+                ⚠️ {consumptionError}
+              </div>
+            )}
+
+            {/* Live calculations when user types */}
+            {liveBill >= 1000 && (
+              <div className={styles.energyProduction} style={{ marginTop: '12px' }}>
+                <div className={styles.energyRow}>
+                  <span>Panels to Place:</span>
+                  <strong className={styles.energyValueGreen}>{livePlacingCount} panels</strong>
+                </div>
+                <div className={styles.energyRow}>
+                  <span>System Capacity:</span>
+                  <strong className={styles.energyValue}>{liveCapacityKWp} kWp</strong>
+                </div>
+                <div className={styles.energyRow}>
+                  <span>Est. Monthly Savings:</span>
+                  <strong className={styles.energyValueGreen}>₹{liveSavings.toLocaleString()} / mo</strong>
+                </div>
+                <div className={styles.energyDivider} />
+                <div className={styles.energyRow}>
+                  <span>Est. Units Offset:</span>
+                  <strong className={styles.energyValue}>~{liveMonthlyKwh} units/mo</strong>
+                </div>
+              </div>
+            )}
+
+            <button
+              type="button"
+              className={styles.placeMaxBtn}
+              onClick={placeMaxCapacityLayout}
+              style={{ marginTop: '14px', width: '100%', padding: '10px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}
+            >
+              Or Place Maximum Physical Capacity ({maxPanelCount} panels)
+            </button>
+          </div>
+        </div>
+      </aside>
+    );
+  }
 
   const occupiedFormatted = formatArea(activeLayout.occupiedAreaSqM);
   const selectedFormatted = formatArea(activeLayout.selectedAreaSqM);
@@ -86,83 +232,187 @@ export function OptimizationSidebar({ onProceedToEnergy, onOpenComparison }: Opt
       </div>
 
       <div className={styles.content}>
-        {/* TAB 1: ARRAY DESIGN (Objective, Panel Hardware, Constraints) */}
+        {/* TAB 1: ARRAY DESIGN (Consumption, Objective, Panel Hardware, Constraints) */}
         {activeTab === 'design' && (
           <div className={styles.tabPane}>
-            {/* Electricity Bill Upload Section */}
+            {/* Monthly Consumption Input Section */}
             <div className={styles.sectionCard}>
               <div className={styles.cardHeader}>
-                <span className={styles.cardTitle}>💡 Electricity Consumption (Optional)</span>
+                <span className={styles.cardTitle}>⚡ Monthly Electricity Bill</span>
               </div>
 
               {!consumption ? (
                 <>
-                  <p className={styles.billDescription}>
-                    Upload your electricity bill to receive a panel layout optimized for your actual consumption needs.
+                  <p className={styles.consumptionDescription}>
+                    Enter your average monthly electricity bill in Rupees (min. ₹1,000/mo) to calculate the optimal number of solar panels.
                   </p>
-                  
-                  <label className={styles.billUploadLabel}>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className={styles.billUploadInput}
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleBillUpload(file);
-                      }}
-                      disabled={isUploadingBill}
-                    />
-                    <div className={styles.billUploadButton}>
-                      {isUploadingBill ? (
-                        <>
-                          <span className={styles.uploadSpinner}>⏳</span>
-                          <span>Extracting consumption data...</span>
-                        </>
-                      ) : (
-                        <>
-                          <span>📄</span>
-                          <span>Upload Electricity Bill</span>
-                        </>
-                      )}
-                    </div>
-                  </label>
 
-                  {uploadError && (
-                    <div className={styles.uploadError}>
-                      ⚠️ {uploadError}
+                  <div className={styles.consumptionInputGroup}>
+                    <div className={styles.inputWrapper}>
+                      <input
+                        type="number"
+                        className={styles.consumptionInput}
+                        placeholder="e.g. 1000"
+                        min="1000"
+                        step="100"
+                        value={consumptionInput}
+                        onChange={(e) => {
+                          setConsumptionInput(e.target.value);
+                          setConsumptionError(null);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleConsumptionSubmit();
+                        }}
+                      />
+                      <span className={styles.inputUnit}>₹ / month</span>
+                    </div>
+                    <button
+                      className={styles.consumptionSubmitBtn}
+                      onClick={handleConsumptionSubmit}
+                      disabled={!consumptionInput}
+                    >
+                      Calculate & Place Panels
+                    </button>
+                  </div>
+
+                  <span className={styles.inputHint}>
+                    Minimum: ₹1,000/month bill
+                  </span>
+
+                  {consumptionError && (
+                    <div className={styles.consumptionError}>
+                      ⚠️ {consumptionError}
                     </div>
                   )}
                 </>
               ) : (
-                <div className={styles.billSummary}>
-                  <div className={styles.billHeader}>
-                    <span className={styles.billIcon}>✅</span>
-                    <div className={styles.billInfo}>
-                      <strong>{consumption.billFileName}</strong>
-                      <span className={styles.billMeta}>
-                        {consumption.annualKwh ? `${consumption.annualKwh.toLocaleString()} kWh/year` : 'No consumption data'}
-                        {consumption.confidence !== null && ` • ${Math.round(consumption.confidence * 100)}% confidence`}
+                <div className={styles.consumptionSummary}>
+                  {/* Consumption Entry Display */}
+                  <div className={styles.consumptionHeader}>
+                    <span className={styles.consumptionIcon}>✅</span>
+                    <div className={styles.consumptionInfo}>
+                      <strong>Monthly Bill Target</strong>
+                      <span className={styles.consumptionMeta}>
+                        ₹{panelAnalysis?.billInr.toLocaleString()}/month • ~{panelAnalysis?.monthlyKwh} units/mo
                       </span>
                     </div>
                     <button
-                      className={styles.removeBillBtn}
-                      onClick={removeBill}
-                      title="Remove bill and use maximum capacity"
+                      className={styles.clearConsumptionBtn}
+                      onClick={handleConsumptionReset}
+                      title="Clear bill and recalculate"
                     >
                       ✕
                     </button>
                   </div>
-                  
-                  {consumption.annualKwh && (
-                    <div className={styles.consumptionHighlight}>
-                      <span className={styles.consumptionLabel}>Annual Consumption</span>
-                      <strong className={styles.consumptionValue}>
-                        {consumption.annualKwh.toLocaleString()} kWh
+
+                  {/* Dynamic Panel Calculation Results */}
+                  <div className={styles.panelCalcGrid}>
+                    <div className={styles.panelCalcItem}>
+                      <span className={styles.panelCalcLabel}>Panels Required</span>
+                      <strong className={styles.panelCalcValuePrimary}>
+                        {panelAnalysis?.requiredPanels ?? 0}
                       </strong>
+                      <span className={styles.panelCalcSub}>
+                        {panelAnalysis?.requiredCapacityKWp ?? 0} kWp needed
+                      </span>
+                    </div>
+                    <div className={styles.panelCalcItem}>
+                      <span className={styles.panelCalcLabel}>Max Panels (Area)</span>
+                      <strong className={styles.panelCalcValueSecondary}>
+                        {maxPanelCount}
+                      </strong>
+                      <span className={styles.panelCalcSub}>
+                        {panelAnalysis?.maxCapacityKWp ?? 0} kWp max
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Fit Status */}
+                  {panelAnalysis && (
+                    <div className={panelAnalysis.canFitAll ? styles.fitStatusGood : styles.fitStatusWarning}>
+                      {panelAnalysis.canFitAll ? (
+                        <>
+                          <span className={styles.fitIcon}>✓</span>
+                          <span>
+                            Rooftop fits your ₹{panelAnalysis.billInr.toLocaleString()} bill: placed {activeLayout.activePanelCount} of {maxPanelCount} max panels
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <span className={styles.fitIcon}>⚠️</span>
+                          <span>
+                            Area supports max {maxPanelCount} panels but bill needs {panelAnalysis.requiredPanels} — placed {activeLayout.activePanelCount} panels
+                          </span>
+                        </>
+                      )}
                     </div>
                   )}
+
+                  {/* Energy & Bill Production Estimate */}
+                  <div className={styles.energyProduction}>
+                    <div className={styles.energyRow}>
+                      <span>Est. Monthly Savings</span>
+                      <strong className={styles.energyValueGreen}>
+                        ₹{panelAnalysis?.monthlySavingsInr.toLocaleString()} / mo
+                      </strong>
+                    </div>
+                    <div className={styles.energyRow}>
+                      <span>Est. Annual Generation</span>
+                      <strong className={styles.energyValue}>
+                        {estimatedAnnualEnergyKwh.toLocaleString()} kWh
+                      </strong>
+                    </div>
+                    <div className={styles.energyRow}>
+                      <span>Monthly Energy Output</span>
+                      <strong className={styles.energyValue}>
+                        ~{Math.round(estimatedAnnualEnergyKwh / 12).toLocaleString()} units/mo
+                      </strong>
+                    </div>
+                    <div className={styles.energyDivider} />
+                    <div className={styles.energyRow}>
+                      <span>Bill Offset Ratio</span>
+                      <strong className={
+                        estimatedAnnualEnergyKwh >= (consumption.annualKwh ?? 0)
+                          ? styles.energyValueGreen
+                          : styles.energyValueWarn
+                      }>
+                        {consumption.annualKwh && consumption.annualKwh > 0
+                          ? `${Math.round((estimatedAnnualEnergyKwh / consumption.annualKwh) * 100)}%`
+                          : '—'}
+                      </strong>
+                    </div>
+                  </div>
                 </div>
               )}
+            </div>
+
+            {/* Rooftop Capacity Recommendation (always visible) */}
+            <div className={styles.sectionCard}>
+              <div className={styles.cardHeader}>
+                <span className={styles.cardTitle}>📊 Rooftop Capacity</span>
+              </div>
+              <div className={styles.capacityGrid}>
+                <div className={styles.capacityItem}>
+                  <span className={styles.capacityLabel}>Max Panels</span>
+                  <strong className={styles.capacityValue}>{maxPanelCount}</strong>
+                </div>
+                <div className={styles.capacityItem}>
+                  <span className={styles.capacityLabel}>Active Panels</span>
+                  <strong className={styles.capacityValueActive}>{activeLayout.activePanelCount}</strong>
+                </div>
+                <div className={styles.capacityItem}>
+                  <span className={styles.capacityLabel}>Max Capacity</span>
+                  <strong className={styles.capacityValue}>
+                    {Math.round(((maxPanelCount * panelSpec.ratedPowerW) / 1000) * 100) / 100} kWp
+                  </strong>
+                </div>
+                <div className={styles.capacityItem}>
+                  <span className={styles.capacityLabel}>Est. Annual Energy</span>
+                  <strong className={styles.capacityValueGreen}>
+                    {estimatedAnnualEnergyKwh.toLocaleString()} kWh
+                  </strong>
+                </div>
+              </div>
             </div>
 
             {/* Optimization Objective Selector */}

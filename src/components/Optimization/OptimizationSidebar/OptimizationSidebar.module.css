@@ -521,56 +521,103 @@
   }
 }
 
-/* Bill Upload Styles */
-.billDescription {
+/* Consumption Input Styles */
+.consumptionDescription {
   font-size: 11px;
   color: var(--color-text-secondary);
   margin: 0 0 10px 0;
   line-height: 1.5;
 }
 
-.billUploadLabel {
-  display: block;
-  cursor: pointer;
+.consumptionInputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.billUploadInput {
-  display: none;
-}
-
-.billUploadButton {
+.inputWrapper {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  padding: 10px;
+  gap: 0;
   background: var(--color-bg-main);
-  border: 2px dashed var(--color-border-subtle);
+  border: 2px solid var(--color-border-subtle);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: border-color 0.2s ease;
+}
+
+.inputWrapper:focus-within {
+  border-color: var(--color-solar);
+}
+
+.consumptionInput {
+  flex: 1;
+  padding: 10px 12px;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--color-text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  min-width: 0;
+}
+
+.consumptionInput::placeholder {
+  color: var(--color-text-muted);
+  font-weight: 400;
+}
+
+.consumptionInput::-webkit-inner-spin-button,
+.consumptionInput::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.inputUnit {
+  padding: 10px 12px;
+  background: var(--color-bg-card);
+  border-left: 1px solid var(--color-border-subtle);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+.consumptionSubmitBtn {
+  width: 100%;
+  padding: 10px 16px;
+  background: var(--color-solar);
+  color: #000;
+  border: none;
   border-radius: 8px;
   font-size: 12px;
-  font-weight: 600;
-  color: var(--color-text-secondary);
+  font-weight: 700;
+  cursor: pointer;
   transition: all 0.2s ease;
+  font-family: inherit;
 }
 
-.billUploadButton:hover {
-  border-color: var(--color-solar);
-  color: var(--color-solar);
-  background: var(--color-solar-muted);
+.consumptionSubmitBtn:hover:not(:disabled) {
+  background: var(--color-solar-light);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px var(--color-solar-glow);
 }
 
-.uploadSpinner {
-  animation: spin 1s linear infinite;
+.consumptionSubmitBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+.inputHint {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  font-style: italic;
 }
 
-.uploadError {
-  margin-top: 8px;
+.consumptionError {
+  margin-top: 4px;
   padding: 8px 10px;
   background: rgba(239, 68, 68, 0.1);
   border: 1px solid rgba(239, 68, 68, 0.3);
@@ -579,13 +626,14 @@
   color: #ef4444;
 }
 
-.billSummary {
+/* Consumption Summary (after input) */
+.consumptionSummary {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
-.billHeader {
+.consumptionHeader {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -595,28 +643,28 @@
   border-radius: 8px;
 }
 
-.billIcon {
+.consumptionIcon {
   font-size: 18px;
 }
 
-.billInfo {
+.consumptionInfo {
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
-.billInfo strong {
+.consumptionInfo strong {
   font-size: 11px;
   color: var(--color-text-primary);
 }
 
-.billMeta {
+.consumptionMeta {
   font-size: 10px;
   color: var(--color-text-tertiary);
 }
 
-.removeBillBtn {
+.clearConsumptionBtn {
   width: 24px;
   height: 24px;
   display: flex;
@@ -631,10 +679,181 @@
   transition: all 0.15s ease;
 }
 
-.removeBillBtn:hover {
+.clearConsumptionBtn:hover {
   background: rgba(239, 68, 68, 0.1);
   border-color: #ef4444;
   color: #ef4444;
+}
+
+/* Panel Calculation Grid */
+.panelCalcGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.panelCalcItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 8px;
+  background: var(--color-bg-main);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.panelCalcLabel {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.panelCalcValuePrimary {
+  font-size: 22px;
+  font-weight: 800;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--color-solar);
+}
+
+.panelCalcValueSecondary {
+  font-size: 22px;
+  font-weight: 800;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--color-text-primary);
+}
+
+.panelCalcSub {
+  font-size: 9.5px;
+  color: var(--color-text-muted);
+}
+
+/* Fit Status */
+.fitStatusGood {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 8px;
+  font-size: 11px;
+  color: var(--color-green);
+}
+
+.fitStatusWarning {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 8px;
+  font-size: 11px;
+  color: var(--color-solar);
+}
+
+.fitIcon {
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+/* Energy Production */
+.energyProduction {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  background: var(--color-bg-main);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 8px;
+}
+
+.energyRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: var(--color-text-secondary);
+}
+
+.energyValue {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.energyValueGreen {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-green);
+}
+
+.energyValueWarn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: #f59e0b;
+}
+
+.energyDivider {
+  height: 1px;
+  background: var(--color-border-subtle);
+  margin: 2px 0;
+}
+
+/* Rooftop Capacity Grid */
+.capacityGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.capacityItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 6px;
+  background: var(--color-bg-main);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.capacityLabel {
+  font-size: 9.5px;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.capacityValue {
+  font-size: 14px;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--color-text-primary);
+}
+
+.capacityValueActive {
+  font-size: 14px;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--color-solar);
+}
+
+.capacityValueGreen {
+  font-size: 13px;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--color-green);
 }
 
 .consumptionHighlight {
@@ -662,3 +881,4 @@
   font-family: 'JetBrains Mono', monospace;
   color: var(--color-solar);
 }
+

@@ -9,6 +9,8 @@ import { OptimizationHeader } from '@/components/Optimization/OptimizationHeader
 import { OptimizationSidebar } from '@/components/Optimization/OptimizationSidebar/OptimizationSidebar';
 import { OptimizationMap } from '@/components/Optimization/OptimizationMap/OptimizationMap';
 import { LayoutComparisonModal } from '@/components/Optimization/LayoutComparisonModal/LayoutComparisonModal';
+import { ConsumptionModal } from '@/components/Optimization/ConsumptionModal/ConsumptionModal';
+import { useOptimization } from '@/context/OptimizationContext';
 import styles from './OptimizationPage.module.css';
 
 function OptimizationWorkspaceInner({
@@ -19,7 +21,11 @@ function OptimizationWorkspaceInner({
   solarAnalysis: ReturnType<typeof loadSolarAnalysis>;
 }) {
   const navigate = useNavigate();
+  const { consumption, activeLayout } = useOptimization();
   const [isCompareOpen, setIsCompareOpen] = useState(false);
+  const [isConsumptionModalOpen, setIsConsumptionModalOpen] = useState(
+    !consumption && !activeLayout
+  );
 
   const handleBackClick = useCallback(() => {
     navigate('/assessment/solar');
@@ -53,6 +59,13 @@ function OptimizationWorkspaceInner({
       <LayoutComparisonModal
         isOpen={isCompareOpen}
         onClose={() => setIsCompareOpen(false)}
+      />
+
+      {/* Monthly Electricity Consumption Prompt & Placement Modal */}
+      <ConsumptionModal
+        isOpen={isConsumptionModalOpen}
+        onClose={() => setIsConsumptionModalOpen(false)}
+        solarAnalysis={solarAnalysis}
       />
     </div>
   );
@@ -88,6 +101,7 @@ export function OptimizationPage() {
       rooftop={rooftop}
       solarAnalysis={solarAnalysis}
       initialSavedLayout={savedLayout}
+      initialConsumption={assessment.consumption ?? null}
     >
       <OptimizationWorkspaceInner rooftop={rooftop} solarAnalysis={solarAnalysis} />
     </OptimizationProvider>

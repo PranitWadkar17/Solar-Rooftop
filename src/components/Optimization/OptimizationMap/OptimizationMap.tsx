@@ -63,7 +63,15 @@ export function OptimizationMap({
   rooftop: Rooftop | null;
   solarAnalysis: SolarAnalysis | null;
 }) {
-  const { state, dispatch, activeLayout } = useOptimization();
+  const {
+    state,
+    dispatch,
+    activeLayout,
+    consumption,
+    isPlacing,
+    placingMessage,
+    maxPanelCount,
+  } = useOptimization();
   const {
     selectedPanelId,
     toolMode,
@@ -328,6 +336,28 @@ export function OptimizationMap({
           </button>
         </div>
       </div>
+
+      {/* Placing Animation Floating Banner */}
+      {isPlacing && (
+        <div className={styles.placingBanner}>
+          <div className={styles.placingSpinner} />
+          <span>{placingMessage}</span>
+        </div>
+      )}
+
+      {/* Consumption Summary Floating Badge */}
+      {consumption && activeLayout && !isPlacing && (
+        <div className={styles.consumptionBadge}>
+          <span>
+            ⚡ Placed {activeLayout.activePanelCount} panels for{' '}
+            {consumption.monthlyBillAmountInr
+              ? `₹${consumption.monthlyBillAmountInr.toLocaleString()}/mo bill`
+              : `${Math.round(consumption.annualKwh / 12).toLocaleString()} units/mo`}
+          </span>
+          <span style={{ color: '#64748b' }}>•</span>
+          <span style={{ color: '#94a3b8' }}>Max {maxPanelCount} physical</span>
+        </div>
+      )}
 
       {/* Map Array Legend / Quick Stats HUD */}
       {activeLayout && (

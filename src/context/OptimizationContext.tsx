@@ -17,11 +17,13 @@ import type {
 } from '@/types/optimization.js';
 import {
   generateCandidateLayouts,
+  generateArrayPlacement,
   DEFAULT_DESIGN_CONSTRAINTS,
 } from '@/services/panelOptimizationService';
 import { savePanelLayout, isLayoutOutdated } from '@/services/optimizationService';
 import { DEFAULT_PANEL_LIBRARY } from '@/data/panelLibrary';
-import { extractConsumptionFromImage } from '@/services/billExtractionService';
+import { convertBillAmountToKwh, DEFAULT_TARIFF_RATE_INR } from '@/utils/consumptionUtils';
+
 
 // --- Actions ---
 
@@ -230,12 +232,22 @@ interface OptimizationContextValue {
   panelSpec: PanelSpecification;
   constraints: DesignConstraints;
   consumption: ElectricityConsumptionProfile | null;
+  monthlyBillAmountInr: number | null;
+  tariffRateInr: number;
   changePanelSpec: (spec: PanelSpecification) => void;
   updateConstraints: (newConstraints: Partial<DesignConstraints>) => void;
   reoptimize: (objective?: OptimizationObjective) => void;
   finalizeLayout: () => void;
-  uploadBill: (file: File) => Promise<void>;
-  removeBill: () => void;
+  setMonthlyConsumption: (monthlyKwh: number) => void;
+  setMonthlyBillAmount: (billAmountInr: number) => void;
+  clearConsumption: () => void;
+  placeMaxCapacityLayout: () => void;
+  maxPanelCount: number;
+  maxPotentialAnnualEnergyKwh: number;
+  solarResourceKwhPerKwp: number;
+  estimatedAnnualEnergyKwh: number;
+  isPlacing: boolean;
+  placingMessage: string | null;
 }
 
 const OptimizationContext = createContext<OptimizationContextValue | null>(null);
@@ -247,11 +259,13 @@ export function OptimizationProvider({
   rooftop,
   solarAnalysis,
   initialSavedLayout,
+  initialConsumption = null,
 }: {
   children: React.ReactNode;
   rooftop: Rooftop | null;
   solarAnalysis: SolarAnalysis | null;
   initialSavedLayout: PanelLayout | null;
+  initialConsumption?: ElectricityConsumptionProfile | null;
 }) {
   const initialStatus: OptimizationWorkspaceState['status'] = isLayoutOutdated(
     initialSavedLayout,
@@ -266,6 +280,7 @@ export function OptimizationProvider({
   const [state, dispatch] = useReducer(optimizationReducer, {
     ...initialState,
     status: initialStatus,
+    consumption: initialConsumption,
   });
 
   const [panelSpec, setPanelSpec] = React.useState<PanelSpecification>(
@@ -274,6 +289,9 @@ export function OptimizationProvider({
   const [constraints, setConstraints] = React.useState<DesignConstraints>(
     initialSavedLayout?.constraints ?? DEFAULT_DESIGN_CONSTRAINTS
   );
+
+  const [isPlacing, setIsPlacing] = React.useState<boolean>(false);
+  const [placingMessage, setPlacingMessage] = React.useState<string | null>(null);
 
   // Active Layout getter
   const activeLayout = useMemo<PanelLayout | null>(() => {
@@ -287,6 +305,13 @@ export function OptimizationProvider({
     return activeLayout.panels.find((p) => p.id === state.selectedPanelId) ?? null;
   }, [activeLayout, state.selectedPanelId]);
 
+  // Dynamic annual solar resource in kWh/kWp
+  const solarResourceKwhPerKwp = useMemo(() => {
+    return solarAnalysis?.peakSunHoursAnnual
+      ? solarAnalysis.peakSunHoursAnnual * 365
+      : 1450;
+  }, [solarAnalysis]);
+
   // Re-optimize candidate layouts
   const reoptimize = useCallback(
     (objective?: OptimizationObjective) => {
@@ -299,7 +324,8 @@ export function OptimizationProvider({
           solarAnalysis.selectedArea,
           panelSpec,
           constraints,
-          solarAnalysis
+          solarAnalysis,
+          state.consumption
         );
         dispatch({ type: 'INIT_LAYOUTS', payload: candidateLayouts });
 
@@ -312,7 +338,7 @@ export function OptimizationProvider({
         dispatch({ type: 'SET_ERROR', payload: msg });
       }
     },
-    [rooftop, solarAnalysis, panelSpec, constraints]
+    [rooftop, solarAnalysis, panelSpec, constraints, state.consumption]
   );
 
   // Initial layout generation on mount
@@ -320,11 +346,22 @@ export function OptimizationProvider({
     if (rooftop && solarAnalysis?.selectedArea && state.layouts.length === 0 && state.status !== 'error') {
       if (initialSavedLayout && !isLayoutOutdated(initialSavedLayout, rooftop, solarAnalysis)) {
         dispatch({ type: 'INIT_LAYOUTS', payload: [initialSavedLayout] });
-      } else {
-        reoptimize();
+      } else if (initialConsumption && initialConsumption.annualKwh) {
+        // If saved/initial consumption profile exists, generate consumption-optimized layout
+        const candidateLayouts = generateCandidateLayouts(
+          rooftop,
+          solarAnalysis.selectedArea,
+          panelSpec,
+          constraints,
+          solarAnalysis,
+          initialConsumption
+        );
+        dispatch({ type: 'INIT_LAYOUTS', payload: candidateLayouts });
       }
+      // Note: If no consumption or saved layout exists, we intentionally wait for user input
+      // so that panels are sized and placed on the basis of monthly consumption, not randomly!
     }
-  }, [rooftop, solarAnalysis, initialSavedLayout, state.layouts.length, state.status, reoptimize]);
+  }, [rooftop, solarAnalysis, initialSavedLayout, initialConsumption, state.layouts.length, state.status, panelSpec, constraints]);
 
   // Change hardware panel spec
   const changePanelSpec = useCallback(
@@ -374,34 +411,144 @@ export function OptimizationProvider({
     savePanelLayout(finalized);
   }, [activeLayout]);
 
-  // Upload electricity bill and extract consumption
-  const uploadBill = useCallback(async (file: File) => {
-    try {
-      const consumptionProfile = await extractConsumptionFromImage(file);
-      dispatch({ type: 'SET_CONSUMPTION', payload: consumptionProfile });
-      
-      // Regenerate layouts with consumption-aware option
-      if (rooftop && solarAnalysis?.selectedArea) {
-        const candidateLayouts = generateCandidateLayouts(
-          rooftop,
-          solarAnalysis.selectedArea,
-          panelSpec,
-          constraints,
-          solarAnalysis,
-          consumptionProfile
-        );
-        dispatch({ type: 'INIT_LAYOUTS', payload: candidateLayouts });
-      }
-    } catch (error) {
-      throw new Error(error instanceof Error ? error.message : 'Failed to extract consumption data from bill');
-    }
+  // Calculate max panels that can fit in the area (from the max_capacity layout)
+  const maxPanelCount = useMemo(() => {
+    if (!rooftop || !solarAnalysis?.selectedArea) return 0;
+    // Generate a max-capacity placement to find the theoretical maximum
+    const maxPanels = generateArrayPlacement(
+      rooftop,
+      solarAnalysis.selectedArea,
+      panelSpec,
+      { ...constraints, maxPanelCount: null },
+      solarAnalysis
+    );
+    return maxPanels.length;
   }, [rooftop, solarAnalysis, panelSpec, constraints]);
 
-  // Remove bill and regenerate layouts without consumption
-  const removeBill = useCallback(() => {
+  // Maximum potential energy if roof is fully populated with panels
+  const maxPotentialAnnualEnergyKwh = useMemo(() => {
+    if (maxPanelCount === 0) return 0;
+    const maxCapacityKWp = (maxPanelCount * panelSpec.ratedPowerW) / 1000;
+    const performanceRatio = 0.78;
+    return Math.round(maxCapacityKWp * solarResourceKwhPerKwp * performanceRatio);
+  }, [maxPanelCount, panelSpec, solarResourceKwhPerKwp]);
+
+  // Dynamically calculate estimated annual energy production from the active layout
+  const estimatedAnnualEnergyKwh = useMemo(() => {
+    if (!activeLayout) return 0;
+    const performanceRatio = 0.78;
+    return Math.round(activeLayout.systemCapacityKWp * solarResourceKwhPerKwp * performanceRatio);
+  }, [activeLayout, solarResourceKwhPerKwp]);
+
+  // Set monthly consumption and regenerate layouts with consumption-optimized placement
+  const setMonthlyConsumption = useCallback((monthlyKwh: number) => {
+    const annualKwh = monthlyKwh * 12;
+    const consumptionProfile: ElectricityConsumptionProfile = {
+      annualKwh,
+      monthlyKwh: Array.from({ length: 12 }, (_, i) => ({
+        month: `2026-${String(i + 1).padStart(2, '0')}`,
+        kwh: monthlyKwh,
+      })),
+      source: 'manual',
+      confidence: 1.0,
+      billFileName: null,
+      uploadedAt: null,
+    };
+
+    // Calculate how many panels will be placed
+    const panelKWp = panelSpec.ratedPowerW / 1000;
+    const performanceRatio = 0.78;
+    const annualEnergyPerPanel = panelKWp * solarResourceKwhPerKwp * performanceRatio;
+    const calculatedNeeded = Math.ceil(annualKwh / annualEnergyPerPanel);
+    const actualPlacingCount = Math.min(calculatedNeeded, maxPanelCount > 0 ? maxPanelCount : calculatedNeeded);
+
+    // Dynamic placing feedback
+    setIsPlacing(true);
+    setPlacingMessage(
+      `Placing ${actualPlacingCount} panels for ${monthlyKwh.toLocaleString()} kWh/month consumption in optimal solar zones...`
+    );
+
+    dispatch({ type: 'SET_CONSUMPTION', payload: consumptionProfile });
+
+    try {
+      const assessmentData = sessionStorage.getItem('solarroof-assessment');
+      if (assessmentData) {
+        const parsed = JSON.parse(assessmentData);
+        parsed.consumption = consumptionProfile;
+        sessionStorage.setItem('solarroof-assessment', JSON.stringify(parsed));
+      }
+    } catch {
+      // Ignore
+    }
+
+    // Regenerate layouts with consumption-aware option
+    if (rooftop && solarAnalysis?.selectedArea) {
+      const candidateLayouts = generateCandidateLayouts(
+        rooftop,
+        solarAnalysis.selectedArea,
+        panelSpec,
+        constraints,
+        solarAnalysis,
+        consumptionProfile
+      );
+      dispatch({ type: 'INIT_LAYOUTS', payload: candidateLayouts });
+
+      // Auto-select the consumption-optimized layout if it exists
+      const consumptionLayout = candidateLayouts.find(l => l.objective === 'consumption_optimized');
+      if (consumptionLayout) {
+        dispatch({ type: 'SELECT_LAYOUT', payload: consumptionLayout.id });
+      }
+    }
+
+    setTimeout(() => {
+      setIsPlacing(false);
+      setPlacingMessage(null);
+    }, 600);
+  }, [rooftop, solarAnalysis, panelSpec, constraints, solarResourceKwhPerKwp, maxPanelCount]);
+
+  // Place maximum capacity layout on demand
+  const placeMaxCapacityLayout = useCallback(() => {
+    if (!rooftop || !solarAnalysis?.selectedArea) return;
+
+    setIsPlacing(true);
+    setPlacingMessage(`Placing maximum capacity (${maxPanelCount} panels) across selected solar area...`);
+
+    const candidateLayouts = generateCandidateLayouts(
+      rooftop,
+      solarAnalysis.selectedArea,
+      panelSpec,
+      constraints,
+      solarAnalysis,
+      null
+    );
+    dispatch({ type: 'INIT_LAYOUTS', payload: candidateLayouts });
+
+    const maxCapLayout = candidateLayouts.find(l => l.objective === 'max_capacity') ?? candidateLayouts[0];
+    if (maxCapLayout) {
+      dispatch({ type: 'SELECT_LAYOUT', payload: maxCapLayout.id });
+    }
+
+    setTimeout(() => {
+      setIsPlacing(false);
+      setPlacingMessage(null);
+    }, 600);
+  }, [rooftop, solarAnalysis, panelSpec, constraints, maxPanelCount]);
+
+  // Clear consumption and regenerate layouts without consumption
+  const clearConsumption = useCallback(() => {
     dispatch({ type: 'SET_CONSUMPTION', payload: null });
-    
-    // Regenerate layouts without consumption option
+
+    try {
+      const assessmentData = sessionStorage.getItem('solarroof-assessment');
+      if (assessmentData) {
+        const parsed = JSON.parse(assessmentData);
+        parsed.consumption = null;
+        sessionStorage.setItem('solarroof-assessment', JSON.stringify(parsed));
+      }
+    } catch {
+      // Ignore
+    }
+
     if (rooftop && solarAnalysis?.selectedArea) {
       const candidateLayouts = generateCandidateLayouts(
         rooftop,
@@ -415,6 +562,81 @@ export function OptimizationProvider({
     }
   }, [rooftop, solarAnalysis, panelSpec, constraints]);
 
+  const tariffRateInr = DEFAULT_TARIFF_RATE_INR; // ₹8.0 per kWh
+  const monthlyBillAmountInr = useMemo(() => {
+    if (state.consumption?.monthlyBillAmountInr) return state.consumption.monthlyBillAmountInr;
+    if (state.consumption?.annualKwh) {
+      return Math.round((state.consumption.annualKwh / 12) * tariffRateInr);
+    }
+    return null;
+  }, [state.consumption, tariffRateInr]);
+
+  // Set monthly bill amount in INR and place panels accordingly
+  const setMonthlyBillAmount = useCallback((billAmountInr: number) => {
+    const { monthlyKwh, annualKwh } = convertBillAmountToKwh(billAmountInr, tariffRateInr);
+    const consumptionProfile: ElectricityConsumptionProfile = {
+      annualKwh,
+      monthlyKwh: Array.from({ length: 12 }, (_, i) => ({
+        month: `2026-${String(i + 1).padStart(2, '0')}`,
+        kwh: monthlyKwh,
+      })),
+      source: 'manual',
+      confidence: 1.0,
+      billFileName: null,
+      uploadedAt: null,
+      monthlyBillAmountInr: billAmountInr,
+      tariffRateInr,
+    };
+
+    // Calculate how many panels will be placed
+    const panelKWp = panelSpec.ratedPowerW / 1000;
+    const performanceRatio = 0.78;
+    const annualEnergyPerPanel = panelKWp * solarResourceKwhPerKwp * performanceRatio;
+    const calculatedNeeded = Math.ceil(annualKwh / annualEnergyPerPanel);
+    const actualPlacingCount = Math.min(calculatedNeeded, maxPanelCount > 0 ? maxPanelCount : calculatedNeeded);
+
+    // Dynamic placing feedback
+    setIsPlacing(true);
+    setPlacingMessage(
+      `Placing ${actualPlacingCount} panels for ₹${billAmountInr.toLocaleString()}/month bill (${monthlyKwh} units) in optimal solar zones...`
+    );
+
+    dispatch({ type: 'SET_CONSUMPTION', payload: consumptionProfile });
+
+    try {
+      const assessmentData = sessionStorage.getItem('solarroof-assessment');
+      if (assessmentData) {
+        const parsed = JSON.parse(assessmentData);
+        parsed.consumption = consumptionProfile;
+        sessionStorage.setItem('solarroof-assessment', JSON.stringify(parsed));
+      }
+    } catch {
+      // Ignore
+    }
+
+    if (rooftop && solarAnalysis?.selectedArea) {
+      const candidateLayouts = generateCandidateLayouts(
+        rooftop,
+        solarAnalysis.selectedArea,
+        panelSpec,
+        constraints,
+        solarAnalysis,
+        consumptionProfile
+      );
+      dispatch({ type: 'INIT_LAYOUTS', payload: candidateLayouts });
+
+      const consumptionLayout = candidateLayouts.find(l => l.objective === 'consumption_optimized');
+      if (consumptionLayout) {
+        dispatch({ type: 'SELECT_LAYOUT', payload: consumptionLayout.id });
+      }
+    }
+
+    setTimeout(() => {
+      setIsPlacing(false);
+      setPlacingMessage(null);
+    }, 600);
+  }, [rooftop, solarAnalysis, panelSpec, constraints, solarResourceKwhPerKwp, maxPanelCount, tariffRateInr]);
+
   return (
     <OptimizationContext.Provider
       value={{
@@ -425,12 +647,22 @@ export function OptimizationProvider({
         panelSpec,
         constraints,
         consumption: state.consumption,
+        monthlyBillAmountInr,
+        tariffRateInr,
         changePanelSpec,
         updateConstraints,
         reoptimize,
         finalizeLayout,
-        uploadBill,
-        removeBill,
+        setMonthlyConsumption,
+        setMonthlyBillAmount,
+        clearConsumption,
+        placeMaxCapacityLayout,
+        maxPanelCount,
+        maxPotentialAnnualEnergyKwh,
+        solarResourceKwhPerKwp,
+        estimatedAnnualEnergyKwh,
+        isPlacing,
+        placingMessage,
       }}
     >
       {children}

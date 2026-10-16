@@ -268,19 +268,25 @@ export function generateArrayPlacement(
   const heightM = (maxLat - minLat) * metersPerDegLat;
   const maxSpanM = Math.sqrt(widthM * widthM + heightM * heightM) * 1.2;
 
-  const panels: PanelInstance[] = [];
-  let panelIndex = 1;
+  interface CandidateSlot {
+    u: number;
+    v: number;
+    geoCorners: [number, number][];
+    centroidLat: number;
+    centroidLng: number;
+    solarZone: 'High' | 'Medium' | 'Low' | 'Mixed';
+    solarAccessPct: number;
+    score: number;
+  }
+
+  const candidateSlots: CandidateSlot[] = [];
 
   // Inset selected boundary by edge clearance
   const edgeBuffer = Math.max(0.2, constraints.edgeClearanceM);
 
-  // Grid scan over span
+  // 1. Grid scan over span to find all physically valid candidate module locations
   for (let v = -maxSpanM / 2 + edgeBuffer; v <= maxSpanM / 2 - edgeBuffer; v += stepV) {
     for (let u = -maxSpanM / 2 + edgeBuffer; u <= maxSpanM / 2 - edgeBuffer; u += stepU) {
-      if (constraints.maxPanelCount && panels.length >= constraints.maxPanelCount) {
-        break;
-      }
-
       // Half-dimensions of module
       const hu = dimAlongRow / 2;
       const hv = groundProjectionCol / 2;
@@ -302,7 +308,7 @@ export function generateArrayPlacement(
         return [lng, lat];
       });
 
-      // 1. Strict containment check inside selected solar area and roof boundary
+      // Strict containment check inside selected solar area and roof boundary
       if (!isPanelInsidePolygon(geoCorners, selectedBoundary)) {
         continue;
       }
@@ -310,49 +316,116 @@ export function generateArrayPlacement(
         continue;
       }
 
-      // 2. Obstacle collision check
+      // Obstacle collision check
       if (isPanelCollidingWithObstacles(geoCorners, rooftop.obstacles, constraints.obstacleClearanceM)) {
         continue;
       }
 
-      // 3. Panel centroid
+      // Panel centroid
       const centroidLng = (geoCorners[0][0] + geoCorners[2][0]) / 2;
       const centroidLat = (geoCorners[0][1] + geoCorners[2][1]) / 2;
 
-      // Sample solar potential
+      // Dynamically sample solar potential from solar analysis zones
       let solarZone: 'High' | 'Medium' | 'Low' | 'Mixed' = 'High';
       let solarAccessPct = 92;
+      let zoneScoreMultiplier = 3;
 
-      if (solarAnalysis) {
-        solarAccessPct = Math.round(solarAnalysis.avgSolarAccessPct);
+      if (solarAnalysis?.zones && solarAnalysis.zones.length > 0) {
+        let matchedZone = false;
+        for (const zone of solarAnalysis.zones) {
+          if (isPointInPolygon([centroidLng, centroidLat], zone.polygon)) {
+            matchedZone = true;
+            solarAccessPct = zone.avgSolarAccessPct ?? 90;
+            if (zone.classification === 'HIGH') {
+              solarZone = 'High';
+              zoneScoreMultiplier = 3;
+            } else if (zone.classification === 'MEDIUM') {
+              solarZone = 'Medium';
+              zoneScoreMultiplier = 2;
+            } else {
+              solarZone = 'Low';
+              zoneScoreMultiplier = 1;
+            }
+            break;
+          }
+        }
+        if (!matchedZone) {
+          solarAccessPct = Math.round(solarAnalysis.avgSolarAccessPct ?? 90);
+          solarZone = solarAnalysis.overallClassification === 'HIGH' ? 'High' : 'Medium';
+          zoneScoreMultiplier = solarAnalysis.overallClassification === 'HIGH' ? 3 : 2;
+        }
+      } else if (solarAnalysis) {
+        solarAccessPct = Math.round(solarAnalysis.avgSolarAccessPct ?? 90);
         solarZone = solarAnalysis.overallClassification === 'HIGH' ? 'High' : 'Medium';
+        zoneScoreMultiplier = solarAnalysis.overallClassification === 'HIGH' ? 3 : 2;
       }
 
-      const panelGeo: GeoJSON.Polygon = {
-        type: 'Polygon',
-        coordinates: [[...geoCorners, geoCorners[0]]],
-      };
+      // Proximity to center of area for clean, contiguous cluster layout (avoid random scattered placement)
+      const distFromCenterM = Math.sqrt(u * u + v * v);
+      const score = (zoneScoreMultiplier * 1000) + (solarAccessPct * 5) - (distFromCenterM * 4);
 
-      panels.push({
-        id: `panel-${panelIndex}`,
-        layoutId: 'layout-draft',
-        index: panelIndex++,
-        geometry: panelGeo,
-        centroid: { lat: centroidLat, lng: centroidLng },
-        orientation: constraints.orientation === 'landscape' ? 'landscape' : 'portrait',
-        lengthM: panelSpec.lengthM,
-        widthM: panelSpec.widthM,
-        tiltDeg: constraints.tiltDeg,
-        azimuthDeg: mountAzimuth,
-        sectionId: null,
+      candidateSlots.push({
+        u,
+        v,
+        geoCorners,
+        centroidLat,
+        centroidLng,
         solarZone,
         solarAccessPct,
-        ratedPowerW: panelSpec.ratedPowerW,
-        isLocked: false,
-        isDeleted: false,
+        score,
       });
     }
   }
+
+  // 2. Select panels: if maxPanelCount is specified (e.g. for consumption-based layout),
+  // pick the highest-solar-yield and best-clustered slots rather than arbitrary/random row truncations
+  let selectedSlots: CandidateSlot[] = [];
+
+  if (constraints.maxPanelCount && constraints.maxPanelCount > 0 && constraints.maxPanelCount < candidateSlots.length) {
+    // Sort descending by score to pick the best spots
+    const ranked = [...candidateSlots].sort((a, b) => b.score - a.score);
+    const topSlots = ranked.slice(0, constraints.maxPanelCount);
+    // Sort chosen slots into orderly rows (v descending, u ascending) for neat array alignment
+    selectedSlots = topSlots.sort((a, b) => {
+      const vDiff = b.v - a.v;
+      if (Math.abs(vDiff) > 0.05) return vDiff;
+      return a.u - b.u;
+    });
+  } else {
+    // Keep all candidate slots sorted neatly by rows
+    selectedSlots = [...candidateSlots].sort((a, b) => {
+      const vDiff = b.v - a.v;
+      if (Math.abs(vDiff) > 0.05) return vDiff;
+      return a.u - b.u;
+    });
+  }
+
+  // 3. Construct PanelInstance array
+  const panels: PanelInstance[] = selectedSlots.map((slot, idx) => {
+    const panelGeo: GeoJSON.Polygon = {
+      type: 'Polygon',
+      coordinates: [[...slot.geoCorners, slot.geoCorners[0]]],
+    };
+
+    return {
+      id: `panel-${idx + 1}`,
+      layoutId: 'layout-draft',
+      index: idx + 1,
+      geometry: panelGeo,
+      centroid: { lat: slot.centroidLat, lng: slot.centroidLng },
+      orientation: constraints.orientation === 'landscape' ? 'landscape' : 'portrait',
+      lengthM: panelSpec.lengthM,
+      widthM: panelSpec.widthM,
+      tiltDeg: constraints.tiltDeg,
+      azimuthDeg: mountAzimuth,
+      sectionId: null,
+      solarZone: slot.solarZone,
+      solarAccessPct: slot.solarAccessPct,
+      ratedPowerW: panelSpec.ratedPowerW,
+      isLocked: false,
+      isDeleted: false,
+    };
+  });
 
   return panels;
 }
@@ -633,10 +706,10 @@ export function generateCandidateLayouts(
         solarAnalysis
       );
       
-      layouts.push(
+      layouts.unshift(
         evaluateLayout(
           'layout-consumption',
-          `Layout D — Consumption Match (${requiredPanelCount} panels)`,
+          `Layout — Consumption Match (${panelsConsumption.length} panels)`,
           'consumption_optimized' as OptimizationObjective,
           rooftop,
           selectedArea,

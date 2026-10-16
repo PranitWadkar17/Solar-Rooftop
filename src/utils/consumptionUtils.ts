@@ -5,6 +5,24 @@
 import type { ElectricityConsumptionProfile } from '@/types/index.js';
 import type { PanelSpecification } from '@/types/optimization.js';
 
+// Default residential electricity tariff in India (₹/kWh)
+export const DEFAULT_TARIFF_RATE_INR = 8.0;
+
+/**
+ * Converts a monthly electricity bill in INR to estimated monthly and annual kWh units
+ */
+export function convertBillAmountToKwh(
+  billAmountInr: number,
+  tariffRate: number = DEFAULT_TARIFF_RATE_INR
+): {
+  monthlyKwh: number;
+  annualKwh: number;
+} {
+  const monthlyKwh = Math.round(billAmountInr / tariffRate);
+  const annualKwh = monthlyKwh * 12;
+  return { monthlyKwh, annualKwh };
+}
+
 /**
  * Calculates the number of solar panels required to meet annual consumption
  * 

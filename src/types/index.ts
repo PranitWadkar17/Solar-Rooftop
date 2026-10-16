@@ -122,6 +122,8 @@ export interface ElectricityConsumptionProfile {
   confidence: number | null;
   billFileName: string | null;
   uploadedAt: string | null;
+  monthlyBillAmountInr?: number | null;
+  tariffRateInr?: number | null;
 }
 
 export interface AssessmentState {

@@ -1,5 +1,7 @@
 .section {
-  background-color: var(--color-bg-main);
+  background-color: rgba(7, 10, 18, 0.55);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   position: relative;
   overflow: hidden;
   text-align: center;
@@ -152,7 +154,7 @@
 
 /* ---- Day Mode ---- */
 :global([data-theme="day"]) .section {
-  background: linear-gradient(135deg, #fffbeb, #f0fdf4);
+  background: rgba(255, 255, 255, 0.55);
 }
 
 :global([data-theme="day"]) .bgGlow {
