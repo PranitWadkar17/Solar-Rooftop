@@ -1,0 +1,269 @@
+/* ========================================================
+   SolarRoof Intelligence — Premium 3D Photovoltaic Theme
+   
+   Directly harmonized with the 301-frame aerial solar rooftop footage:
+   • Deep crystalline photovoltaic sapphire (#38bdf8, #0284c7)
+   • Radiant solar amber irradiance (#f59e0b, #fbbf24)
+   • Clean eco-generation emerald (#10b981, #34d399)
+   • High-contrast crisp white typography with deep legibility shadows
+   • Ultra-modern frosted glass HUD cards that float effortlessly over 3D frames
+   ======================================================== */
+
+.landing-page-root {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  background: transparent !important;
+  color: #f8fafc;
+}
+
+/* Force 100% transparency on all 12 sections so frames are completely visible */
+.landing-page-root section,
+.landing-page-root .section,
+.landing-page-root footer,
+[data-theme="day"] .landing-page-root section,
+[data-theme="day"] .landing-page-root .section,
+[data-theme="day"] .landing-page-root footer {
+  background: transparent !important;
+  background-color: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* ────────────────────────────────────────────────────────
+   TYPOGRAPHY & READABILITY
+   ──────────────────────────────────────────────────────── */
+
+/* Section Headings */
+.landing-page-root h1,
+.landing-page-root h2,
+.landing-page-root h3,
+.landing-page-root [class*="headline"],
+.landing-page-root [class*="title"],
+[data-theme="day"] .landing-page-root h1,
+[data-theme="day"] .landing-page-root h2,
+[data-theme="day"] .landing-page-root h3,
+[data-theme="day"] .landing-page-root [class*="headline"],
+[data-theme="day"] .landing-page-root [class*="title"] {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em !important;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.95), 0 0 32px rgba(0, 0, 0, 0.8) !important;
+}
+
+/* Subtitles, paragraphs and body copy */
+.landing-page-root p,
+.landing-page-root [class*="subtext"],
+.landing-page-root [class*="subtitle"],
+.landing-page-root [class*="desc"],
+.landing-page-root [class*="caption"],
+[data-theme="day"] .landing-page-root p,
+[data-theme="day"] .landing-page-root [class*="subtext"],
+[data-theme="day"] .landing-page-root [class*="subtitle"],
+[data-theme="day"] .landing-page-root [class*="desc"],
+[data-theme="day"] .landing-page-root [class*="caption"] {
+  color: rgba(255, 255, 255, 0.92) !important;
+  font-size: 1.05rem !important;
+  line-height: 1.65 !important;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9) !important;
+}
+
+/* Glowing Category Badges & Eyebrows */
+.landing-page-root [class*="label"],
+.landing-page-root [class*="badge"],
+[data-theme="day"] .landing-page-root [class*="label"],
+[data-theme="day"] .landing-page-root [class*="badge"] {
+  color: #fbbf24 !important;
+  background: rgba(245, 158, 11, 0.18) !important;
+  border: 1px solid rgba(245, 158, 11, 0.38) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+  text-shadow: 0 0 10px rgba(245, 158, 11, 0.6) !important;
+  font-weight: 600 !important;
+}
+
+/* ────────────────────────────────────────────────────────
+   FROSTED GLASS HUD CARDS & WIDGETS
+   ──────────────────────────────────────────────────────── */
+
+.landing-page-root [class*="factor"],
+.landing-page-root [class*="pipeline"],
+.landing-page-root [class*="stepCard"],
+.landing-page-root [class*="stepItem"],
+.landing-page-root [class*="capabilityCard"],
+.landing-page-root [class*="card"],
+.landing-page-root [class*="Card"],
+.landing-page-root [class*="tableWrap"],
+.landing-page-root [class*="featureRow"],
+.landing-page-root [class*="matrixWrap"],
+.landing-page-root [class*="simulatorWrap"],
+.landing-page-root [class*="previewWrap"],
+.landing-page-root [class*="controlPanel"],
+.landing-page-root [class*="statCard"],
+.landing-page-root [class*="metric"],
+.landing-page-root [class*="badgeItem"],
+.landing-page-root [class*="useCase"],
+.landing-page-root [class*="pillar"],
+.landing-page-root [class*="techStack"],
+.landing-page-root [class*="ctaCard"],
+.landing-page-root [class*="scenario"],
+.landing-page-root [class*="baseline"],
+.landing-page-root [class*="vizPanel"],
+.landing-page-root [class*="mainScore"],
+.landing-page-root [class*="subScore"],
+[data-theme="day"] .landing-page-root [class*="factor"],
+[data-theme="day"] .landing-page-root [class*="pipeline"],
+[data-theme="day"] .landing-page-root [class*="stepCard"],
+[data-theme="day"] .landing-page-root [class*="stepItem"],
+[data-theme="day"] .landing-page-root [class*="capabilityCard"],
+[data-theme="day"] .landing-page-root [class*="card"],
+[data-theme="day"] .landing-page-root [class*="Card"],
+[data-theme="day"] .landing-page-root [class*="tableWrap"],
+[data-theme="day"] .landing-page-root [class*="featureRow"],
+[data-theme="day"] .landing-page-root [class*="matrixWrap"],
+[data-theme="day"] .landing-page-root [class*="simulatorWrap"],
+[data-theme="day"] .landing-page-root [class*="previewWrap"],
+[data-theme="day"] .landing-page-root [class*="controlPanel"],
+[data-theme="day"] .landing-page-root [class*="statCard"],
+[data-theme="day"] .landing-page-root [class*="metric"],
+[data-theme="day"] .landing-page-root [class*="badgeItem"],
+[data-theme="day"] .landing-page-root [class*="useCase"],
+[data-theme="day"] .landing-page-root [class*="pillar"],
+[data-theme="day"] .landing-page-root [class*="techStack"],
+[data-theme="day"] .landing-page-root [class*="ctaCard"],
+[data-theme="day"] .landing-page-root [class*="scenario"],
+[data-theme="day"] .landing-page-root [class*="baseline"],
+[data-theme="day"] .landing-page-root [class*="vizPanel"],
+[data-theme="day"] .landing-page-root [class*="mainScore"],
+[data-theme="day"] .landing-page-root [class*="subScore"] {
+  background: rgba(7, 14, 28, 0.72) !important;
+  backdrop-filter: blur(18px) !important;
+  -webkit-backdrop-filter: blur(18px) !important;
+  border: 1px solid rgba(56, 189, 248, 0.24) !important;
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.14) !important;
+  border-radius: 16px !important;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+/* Interactive Hover state on Glass Cards */
+.landing-page-root [class*="factor"]:hover,
+.landing-page-root [class*="stepCard"]:hover,
+.landing-page-root [class*="capabilityCard"]:hover,
+.landing-page-root [class*="card"]:hover,
+.landing-page-root [class*="scenario"]:hover {
+  background: rgba(10, 18, 36, 0.72) !important;
+  border-color: rgba(245, 158, 11, 0.45) !important;
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.6), 0 0 24px rgba(245, 158, 11, 0.22) !important;
+  transform: translateY(-3px) !important;
+}
+
+/* Card Titles & Labels */
+.landing-page-root [class*="factorLabel"],
+.landing-page-root [class*="cardTitle"],
+.landing-page-root [class*="stepTitle"],
+.landing-page-root [class*="itemTitle"],
+.landing-page-root [class*="metricLabel"],
+.landing-page-root [class*="statLabel"],
+.landing-page-root [class*="statValue"],
+.landing-page-root [class*="value"],
+[data-theme="day"] .landing-page-root [class*="factorLabel"],
+[data-theme="day"] .landing-page-root [class*="cardTitle"],
+[data-theme="day"] .landing-page-root [class*="stepTitle"],
+[data-theme="day"] .landing-page-root [class*="itemTitle"],
+[data-theme="day"] .landing-page-root [class*="metricLabel"],
+[data-theme="day"] .landing-page-root [class*="statLabel"],
+[data-theme="day"] .landing-page-root [class*="statValue"],
+[data-theme="day"] .landing-page-root [class*="value"] {
+  color: #ffffff !important;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.85) !important;
+}
+
+/* Icons & Graphic Accents */
+.landing-page-root [class*="factorIcon"],
+.landing-page-root [class*="cardIcon"],
+.landing-page-root [class*="stepIcon"] {
+  color: #38bdf8 !important;
+  filter: drop-shadow(0 0 10px rgba(56, 189, 248, 0.45));
+}
+
+.landing-page-root [class*="stepNumber"],
+.landing-page-root [class*="pipelineDot"] {
+  background: rgba(14, 23, 42, 0.75) !important;
+  border: 1px solid rgba(245, 158, 11, 0.4) !important;
+  color: #fbbf24 !important;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.3) !important;
+}
+
+/* Primary Hero & Final Action Buttons */
+.landing-page-root button[class*="primaryCta"],
+.landing-page-root a[class*="primaryCta"] {
+  background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%) !important;
+  color: #070a12 !important;
+  font-weight: 700 !important;
+  box-shadow: 0 8px 28px rgba(245, 158, 11, 0.45), 0 0 40px rgba(245, 158, 11, 0.2) !important;
+  border-radius: 9999px !important;
+  border: none !important;
+  text-shadow: none !important;
+  transition: all 0.25s ease !important;
+}
+
+.landing-page-root button[class*="primaryCta"]:hover,
+.landing-page-root a[class*="primaryCta"]:hover {
+  transform: translateY(-2px) scale(1.02) !important;
+  box-shadow: 0 12px 36px rgba(245, 158, 11, 0.6), 0 0 50px rgba(245, 158, 11, 0.3) !important;
+}
+
+/* Secondary Frosted Glass Buttons */
+.landing-page-root button[class*="secondaryCta"],
+.landing-page-root a[class*="secondaryCta"] {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  border-radius: 9999px !important;
+  transition: all 0.25s ease !important;
+}
+
+.landing-page-root button[class*="secondaryCta"]:hover,
+.landing-page-root a[class*="secondaryCta"]:hover {
+  background: rgba(255, 255, 255, 0.2) !important;
+  border-color: rgba(255, 255, 255, 0.45) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* Translucent table rows & comparison lists */
+.landing-page-root table,
+.landing-page-root tbody,
+.landing-page-root tr,
+.landing-page-root td,
+.landing-page-root th {
+  background: transparent !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: #ffffff !important;
+}
+
+/* Navbar — Sleek translucent dark glass */
+.navbar,
+header.navbar,
+[data-theme="day"] .navbar,
+[data-theme="day"] header.navbar {
+  background: rgba(7, 12, 22, 0.6) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.navbar .navLink,
+[data-theme="day"] .navbar .navLink {
+  color: rgba(255, 255, 255, 0.85) !important;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6) !important;
+}
+
+.navbar .navLink:hover,
+[data-theme="day"] .navbar .navLink:hover {
+  color: #38bdf8 !important;
+  background: rgba(56, 189, 248, 0.1) !important;
+}

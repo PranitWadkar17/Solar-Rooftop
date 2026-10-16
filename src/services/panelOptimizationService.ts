@@ -43,50 +43,50 @@ function validateStructuralRequirements(
 ): StructuralValidation {
   const issues: string[] = [];
   const recommendations: string[] = [];
-  
+
   // Estimate panel weight: typical solar panel ~20-25 kg + mounting ~10 kg
   const avgPanelWeightKg = 22;
   const mountingWeightKg = 10;
   const totalWeightKg = panelCount * (avgPanelWeightKg + mountingWeightKg);
   const roofArea = rooftop.area;
   const loadPerSqM = totalWeightKg / roofArea;
-  
+
   // Typical flat roof load capacity: 150-300 kg/m² (residential), 300-500 kg/m² (commercial)
   // Solar system typically adds 15-25 kg/m²
   const typicalSolarLoadKgPerSqM = 20;
   const maxRecommendedLoad = 25; // Conservative threshold
-  
+
   let loadCapacityCheck: 'pass' | 'warning' | 'fail' = 'pass';
-  
+
   if (loadPerSqM > maxRecommendedLoad) {
     loadCapacityCheck = 'warning';
     issues.push(`Estimated load (${loadPerSqM.toFixed(1)} kg/m²) exceeds typical solar load capacity. Structural engineer assessment required.`);
   } else if (loadPerSqM > typicalSolarLoadKgPerSqM) {
     recommendations.push(`Load approaches ${loadPerSqM.toFixed(1)} kg/m². Verify roof structural capacity before installation.`);
   }
-  
+
   // Wind zone compliance (cannot determine without location-specific data)
   const windZoneCompliance: 'pass' | 'unknown' = 'unknown';
   recommendations.push('Verify wind load calculations per local building codes (ASCE 7 or equivalent).');
-  
+
   // Fire access compliance (check for sufficient walkways)
   let fireAccessCompliance: 'pass' | 'warning' = 'pass';
   const roofDiagonal = Math.sqrt(2 * roofArea); // Rough estimate
-  
+
   if (roofArea > 1000) { // Large commercial roof
     recommendations.push('Large roof area detected. Ensure 1.2m wide access pathways per fire code requirements.');
   }
-  
+
   if (roofDiagonal > 75) { // Very large building
     fireAccessCompliance = 'warning';
     issues.push('Building dimensions suggest fire code may require 6ft (1.8m) wide access pathways and equipment access zones.');
   }
-  
+
   // Roof type considerations
   if (rooftop.roofType === 'unknown') {
     recommendations.push('Roof type not confirmed. Verify mounting system compatibility with actual roof structure.');
   }
-  
+
   return {
     loadCapacityCheck,
     windZoneCompliance,
@@ -109,13 +109,13 @@ function validateCodeCompliance(
   const requiredObstacleClearance = 0.6; // 2 ft clearance from obstacles
   const requiredWalkwayWidth = 0.9; // 3 ft minimum walkway
   const requiredFireAccess = selectedArea.area > 500; // >500m² typically requires access
-  
+
   // Structural load limits (conservative residential assumption)
   const maxStructuralLoadKgPerSqM = 25;
   const avgPanelKg = 22;
   const mountingKg = 10;
   const actualLoadKgPerSqM = (panelLayout.panels.length * (avgPanelKg + mountingKg)) / selectedArea.area;
-  
+
   return {
     edgeClearance: {
       required: requiredEdgeClearance,
@@ -675,10 +675,10 @@ export function generateCandidateLayouts(
     // Calculate solar resource: peakSunHoursAnnual is essentially kWh/m²/year
     // For PV systems, we convert this to kWh/kWp by considering typical system factors
     // Standard assumption: 1 kWp system with optimal orientation yields ~peakSunHours × 365 kWh/year
-    const solarResourceKwhPerKwp = solarAnalysis?.peakSunHoursAnnual 
-      ? solarAnalysis.peakSunHoursAnnual * 365 
+    const solarResourceKwhPerKwp = solarAnalysis?.peakSunHoursAnnual
+      ? solarAnalysis.peakSunHoursAnnual * 365
       : 1450; // Default for moderate climate
-    
+
     const requiredPanelCount = calculateRequiredPanelCount(
       consumption,
       panelSpec,
@@ -697,7 +697,7 @@ export function generateCandidateLayouts(
         panelSpacingM: 0.03,
         maxPanelCount: requiredPanelCount, // Limit to required count
       };
-      
+
       const panelsConsumption = generateArrayPlacement(
         rooftop,
         selectedArea,
@@ -705,7 +705,7 @@ export function generateCandidateLayouts(
         constrConsumption,
         solarAnalysis
       );
-      
+
       layouts.unshift(
         evaluateLayout(
           'layout-consumption',

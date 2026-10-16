@@ -1,13 +1,10 @@
 .section {
-  background-color: rgba(12, 16, 28, 0.58);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  background: transparent;
   position: relative;
-  transition: background-color var(--duration-normal) var(--ease-out);
 }
 
 :global([data-theme="day"]) .section {
-  background-color: rgba(248, 250, 252, 0.58);
+  background: transparent;
 }
 
 .comparison {

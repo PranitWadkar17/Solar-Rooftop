@@ -7,10 +7,9 @@ import styles from './Navbar.module.css';
 
 const navLinks = [
   { label: 'Platform', href: '#platform' },
-  { label: 'How It Works', href: '#how-it-works' },
+  { label: 'Workflow', href: '#workflow' },
+  { label: 'Bill Optimization', href: '#bill-optimization' },
   { label: 'Capabilities', href: '#capabilities' },
-  { label: 'Applications', href: '#applications' },
-  { label: 'Technology', href: '#technology' },
 ];
 
 export function Navbar() {

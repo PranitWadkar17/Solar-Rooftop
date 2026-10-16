@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Auto-synced frame assets (source is in framify_frames/)
+public/framify_frames/

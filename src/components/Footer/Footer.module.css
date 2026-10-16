@@ -1,17 +1,14 @@
 .footer {
-  background-color: rgba(7, 10, 18, 0.6);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  background: transparent;
   color: var(--color-text-secondary);
   padding: var(--space-16) 0 var(--space-8);
-  border-top: var(--border-subtle);
-  transition: background-color var(--duration-normal) var(--ease-out);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
   position: relative;
   z-index: 1;
 }
 
 :global([data-theme="day"]) .footer {
-  background-color: rgba(255, 255, 255, 0.6);
+  background: transparent;
 }
 
 .inner {

@@ -3,25 +3,25 @@ import { SectionHeading } from '../../components/SectionHeading/SectionHeading';
 import styles from './Problem.module.css';
 
 const factors = [
-  { icon: '⬡', label: 'Roof Geometry' },
-  { icon: '◎', label: 'Orientation' },
-  { icon: '△', label: 'Tilt Angle' },
-  { icon: '⊞', label: 'Usable Area' },
-  { icon: '⊘', label: 'Obstacles' },
-  { icon: '⚘', label: 'Trees' },
-  { icon: '▨', label: 'Nearby Buildings' },
-  { icon: '◐', label: 'Shading' },
-  { icon: '☀', label: 'Solar Resource' },
-  { icon: '⚡', label: 'Consumption' },
-  { icon: '₹', label: 'Economics' },
-  { icon: '⚙', label: 'Deployment' },
+  { icon: '⬡', label: 'Roof Geometry', detail: 'Slope & Plane Detection' },
+  { icon: '◎', label: 'Azimuth & Facing', detail: 'Optimal Sun Orientation' },
+  { icon: '△', label: 'Tilt Angle', detail: 'Photovoltaic Angle' },
+  { icon: '⊞', label: 'Usable Space', detail: 'Setbacks & Walkways' },
+  { icon: '⊘', label: 'HVAC & Vents', detail: 'Obstacle Avoidance' },
+  { icon: '⚘', label: 'Tree Shadows', detail: 'Canopy Raytracing' },
+  { icon: '▨', label: 'Nearby Buildings', detail: 'Horizon Obstruction' },
+  { icon: '◐', label: 'Seasonal Irradiance', detail: '365-Day Sun Vector' },
+  { icon: '☀', label: 'Solar Resource (GHI)', detail: 'Direct + Diffuse Light' },
+  { icon: '⚡', label: 'Bill Consumption', detail: 'Dynamic Sizing Engine' },
+  { icon: '₹', label: 'Payback Economics', detail: 'Tariff & Subsidies' },
+  { icon: '⚙', label: 'CAD Deployment', detail: 'Electrical Wiring Grid' },
 ];
 
 const pipeline = [
-  { label: 'Raw Rooftop', desc: 'Satellite imagery', color: 'var(--color-gray-500)' },
-  { label: 'Geospatial Analysis', desc: 'Geometry & context extraction', color: 'var(--color-blue)' },
-  { label: 'Solar Intelligence', desc: 'Energy & financial modelling', color: 'var(--color-solar)' },
-  { label: 'Actionable Decision', desc: 'Suitability & recommendations', color: 'var(--color-green)' },
+  { label: 'Raw Satellite Scan', desc: 'Millimeter-accurate 3D aerial ingestion', color: '#38bdf8' },
+  { label: 'Geospatial AI Modeling', desc: 'Obstacle & roof facet segmentation', color: '#60a5fa' },
+  { label: 'Physics-Based Raytracing', desc: 'Hour-by-hour shadow & yield simulation', color: '#f59e0b' },
+  { label: 'Optimized Solar Deployment', desc: 'Maximized ROI & consumption matching', color: '#10b981' },
 ];
 
 export function Problem() {
@@ -32,9 +32,9 @@ export function Problem() {
       <div className="container" ref={ref}>
         <div className={`${styles.content} ${isVisible ? styles.visible : ''}`}>
           <SectionHeading
-            label="The Challenge"
+            label="Multi-Factor Intelligence"
             title="Solar Potential Is More Than Roof Area."
-            subtitle="Rooftop solar decisions depend on a complex interplay of physical, environmental, and economic factors that cannot be reduced to a single measurement."
+            subtitle="Accurate rooftop solar decisions depend on an intricate interplay of 3D geometry, solar raytracing, shadow kinematics, and consumption economics."
           />
 
           {/* Factor Grid */}
@@ -43,6 +43,9 @@ export function Problem() {
               <div key={factor.label} className={styles.factor}>
                 <span className={styles.factorIcon} aria-hidden="true">{factor.icon}</span>
                 <span className={styles.factorLabel}>{factor.label}</span>
+                <span style={{ fontSize: '0.65rem', color: 'rgba(56, 189, 248, 0.85)', textAlign: 'center', marginTop: '2px' }}>
+                  {factor.detail}
+                </span>
               </div>
             ))}
           </div>
@@ -53,7 +56,7 @@ export function Problem() {
               <div key={step.label} className={styles.pipelineStep}>
                 <div
                   className={styles.pipelineDot}
-                  style={{ borderColor: step.color, boxShadow: `0 0 12px ${step.color}33` }}
+                  style={{ borderColor: step.color, boxShadow: `0 0 16px ${step.color}66` }}
                 />
                 <div className={styles.pipelineContent}>
                   <span className={styles.pipelineLabel} style={{ color: step.color }}>
@@ -64,7 +67,7 @@ export function Problem() {
                 {i < pipeline.length - 1 && (
                   <div className={styles.pipelineArrow} aria-hidden="true">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                      <path d="M5 12h14M13 6l6 6-6 6" stroke="var(--color-gray-400)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M5 12h14M13 6l6 6-6 6" stroke="rgba(255, 255, 255, 0.4)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   </div>
                 )}
