@@ -5,20 +5,52 @@
 import type { ElectricityConsumptionProfile } from '@/types/index.js';
 import type { PanelSpecification } from '@/types/optimization.js';
 
-// Default residential electricity tariff in India (₹/kWh)
-export const DEFAULT_TARIFF_RATE_INR = 8.0;
+import { LEGACY_FALLBACK_TARIFF, unitsForBill, type TariffPlan, FLAT_FALLBACK_PLAN } from '@/services/tariffService.js';
+
+// Backward-compatible alias referencing the single authoritative constant
+export const DEFAULT_TARIFF_RATE_INR = LEGACY_FALLBACK_TARIFF;
 
 /**
- * Converts a monthly electricity bill in INR to estimated monthly and annual kWh units
+ * Converts a monthly electricity bill in INR to estimated monthly and annual kWh units.
+ * Supports dynamic TariffPlan via inverse binary search, or fallback flat rate.
  */
 export function convertBillAmountToKwh(
   billAmountInr: number,
-  tariffRate: number = DEFAULT_TARIFF_RATE_INR
+  tariffRateOrPlan?: number | TariffPlan,
+  loadKw?: number | null
 ): {
   monthlyKwh: number;
   annualKwh: number;
+  lowerBoundKwh?: number;
+  upperBoundKwh?: number;
 } {
-  const monthlyKwh = Math.round(billAmountInr / tariffRate);
+  if (typeof tariffRateOrPlan === 'object' && tariffRateOrPlan !== null) {
+    const res = unitsForBill(tariffRateOrPlan, billAmountInr, loadKw);
+    return {
+      monthlyKwh: res.units,
+      annualKwh: res.units * 12,
+      lowerBoundKwh: res.lowerBound,
+      upperBoundKwh: res.upperBound,
+    };
+  }
+
+  // If a flat number is passed (or omitted), check if it equals the fallback rate
+  const rate = typeof tariffRateOrPlan === 'number' && tariffRateOrPlan > 0
+    ? tariffRateOrPlan
+    : LEGACY_FALLBACK_TARIFF;
+
+  // If using default rate, use flat calculation for exact legacy regression compatibility
+  if (rate === LEGACY_FALLBACK_TARIFF && !tariffRateOrPlan) {
+    const res = unitsForBill(FLAT_FALLBACK_PLAN, billAmountInr, loadKw);
+    return {
+      monthlyKwh: res.units,
+      annualKwh: res.units * 12,
+      lowerBoundKwh: res.lowerBound,
+      upperBoundKwh: res.upperBound,
+    };
+  }
+
+  const monthlyKwh = Math.round(billAmountInr / rate);
   const annualKwh = monthlyKwh * 12;
   return { monthlyKwh, annualKwh };
 }

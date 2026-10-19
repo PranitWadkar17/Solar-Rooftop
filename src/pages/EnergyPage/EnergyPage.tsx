@@ -1,4 +1,4 @@
-import { useContext } from 'react';
+import { useContext, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { loadAssessment } from '@/services/assessmentService';
 import { loadPanelLayout } from '@/services/optimizationService';
@@ -6,6 +6,8 @@ import { loadRooftop } from '@/services/rooftopService';
 import { loadSolarAnalysis } from '@/services/solarAnalysisService';
 import { buildConsumptionComparison } from '@/services/energyAnalysisService';
 import { exportProjectAsJSON, exportAsGeoJSON, downloadJSON, downloadGeoJSON } from '@/services/dataExportService';
+import { generateSolarReport } from '@/services/solarReportService';
+import { SolarReportPanel } from '@/components/Optimization/SolarReportPanel/SolarReportPanel';
 import { formatArea } from '@/utils/geoUtils';
 import { ProgressStepper } from '@/components/Assessment/ProgressStepper/ProgressStepper';
 import { ThemeContext } from '@/App';
@@ -22,6 +24,25 @@ export function EnergyPage() {
 
   const occupiedFormatted = layout ? formatArea(layout.occupiedAreaSqM) : null;
   const comparison = buildConsumptionComparison(layout, assessment?.consumption ?? null);
+
+  const solarReport = useMemo(() => {
+    const consumptionData = assessment?.consumption;
+    const monthlyList = consumptionData?.monthlyKwh?.map((m) => m.kwh) || [];
+    const avgUnits = consumptionData?.annualKwh ? consumptionData.annualKwh / 12 : 250;
+
+    return generateSolarReport({
+      monthlyConsumptionKwh: monthlyList.length > 0 ? monthlyList : [avgUnits],
+      maxPanelsFit: layout?.activePanelCount ?? null,
+      panelWattage: layout?.panelSpec?.ratedPowerW ?? 540,
+      panelAreaM2: layout?.panelSpec ? layout.panelSpec.lengthM * layout.panelSpec.widthM : 2.5,
+      roofAreaM2: rooftop?.totalAreaSqM ?? solarAnalysis?.selectedArea?.area ?? null,
+      sanctionedLoadKw: consumptionData?.billData?.sanctionedLoadKw ?? null,
+      tariffContext: {
+        confirmedBillData: consumptionData?.billData ?? null,
+        discomName: consumptionData?.billData?.discomName ?? null,
+      },
+    });
+  }, [assessment, layout, rooftop, solarAnalysis]);
 
   const handleDownloadJSON = () => {
     if (!assessment) return;
@@ -140,8 +161,12 @@ export function EnergyPage() {
                   <path d="M12 16v-4M12 8h.01" />
                 </svg>
                 <span>
-                  Electricity consumption profile loaded from Phase 04 Optimization. 
-                  Return to Optimization to modify consumption data.
+                  {assessment?.consumption?.source === 'bill_upload'
+                    ? (assessment.consumption.billData?.monthlyKwhProfile && assessment.consumption.billData.monthlyKwhProfile.length > 1
+                        ? `Based on your uploaded bill (${assessment.consumption.billData.discomName || 'Utility'} 12-month seasonal history).`
+                        : `Based on your uploaded bill (${assessment.consumption.billFileName || 'bill photo'}).`)
+                    : 'Based on the monthly electricity bill amount you entered manually.'}
+                  {' '}Return to Optimization to modify consumption data.
                 </span>
               </div>
 
@@ -201,6 +226,15 @@ export function EnergyPage() {
             </div>
             </>
           )}
+
+          {/* Comprehensive Solar Feasibility, Cost Breakdown, and Financial Report */}
+          <div style={{ marginTop: '24px', marginBottom: '24px' }}>
+            <SolarReportPanel
+              report={solarReport}
+              billData={assessment?.consumption?.billData ?? null}
+              selectedRoofAreaM2={rooftop?.totalAreaSqM ?? solarAnalysis?.selectedArea?.area}
+            />
+          </div>
 
           {/* Phase 6 Roadmap */}
           <div className={styles.roadmap}>

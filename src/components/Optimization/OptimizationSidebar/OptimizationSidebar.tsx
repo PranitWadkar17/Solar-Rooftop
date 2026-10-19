@@ -24,9 +24,7 @@ export function OptimizationSidebar({ onProceedToEnergy, onOpenComparison }: Opt
     reoptimize,
     finalizeLayout,
     consumption,
-    monthlyBillAmountInr,
     tariffRateInr,
-    setMonthlyConsumption,
     setMonthlyBillAmount,
     clearConsumption,
     placeMaxCapacityLayout,
@@ -47,15 +45,14 @@ export function OptimizationSidebar({ onProceedToEnergy, onOpenComparison }: Opt
       return null;
     }
 
-    const rate = tariffRateInr || 8.0;
-    const billInr = consumption.monthlyBillAmountInr ?? Math.round((consumption.annualKwh / 12) * rate);
+    const billInr = consumption.monthlyBillAmountInr ?? Math.round((consumption.annualKwh / 12) * tariffRateInr);
     const monthlyKwh = Math.round(consumption.annualKwh / 12);
     const requiredPanels = calculateRequiredPanelCount(consumption, panelSpec, solarResourceKwhPerKwp) ?? 0;
     const maxCapacityKWp = Math.round(((maxPanelCount * panelSpec.ratedPowerW) / 1000) * 100) / 100;
     const requiredCapacityKWp = Math.round(((requiredPanels * panelSpec.ratedPowerW) / 1000) * 100) / 100;
     const canFitAll = requiredPanels <= maxPanelCount;
     const estimatedMonthlyKwh = Math.round(estimatedAnnualEnergyKwh / 12);
-    const monthlySavingsInr = Math.min(billInr, Math.round(estimatedMonthlyKwh * rate));
+    const monthlySavingsInr = Math.min(billInr, Math.round(estimatedMonthlyKwh * tariffRateInr));
 
     return {
       billInr,
@@ -87,8 +84,7 @@ export function OptimizationSidebar({ onProceedToEnergy, onOpenComparison }: Opt
   // If no layout is active yet (waiting for bill entry)
   if (!activeLayout) {
     const liveBill = parseFloat(consumptionInput);
-    const rate = tariffRateInr || 8.0;
-    const liveMonthlyKwh = !isNaN(liveBill) && liveBill > 0 ? Math.round(liveBill / rate) : 0;
+    const liveMonthlyKwh = !isNaN(liveBill) && liveBill > 0 && tariffRateInr > 0 ? Math.round(liveBill / tariffRateInr) : 0;
     const liveAnnualKwh = liveMonthlyKwh * 12;
     const panelKWp = panelSpec.ratedPowerW / 1000;
     const annualEnergyPerPanel = panelKWp * solarResourceKwhPerKwp * 0.78;
@@ -96,7 +92,7 @@ export function OptimizationSidebar({ onProceedToEnergy, onOpenComparison }: Opt
     const livePlacingCount = Math.min(liveRequired, maxPanelCount > 0 ? maxPanelCount : liveRequired);
     const liveCapacityKWp = Math.round(((livePlacingCount * panelSpec.ratedPowerW) / 1000) * 100) / 100;
     const liveEstEnergy = Math.round(liveCapacityKWp * solarResourceKwhPerKwp * 0.78);
-    const liveSavings = Math.min(liveBill || 0, Math.round((liveEstEnergy / 12) * rate));
+    const liveSavings = Math.min(liveBill || 0, Math.round((liveEstEnergy / 12) * tariffRateInr));
 
     return (
       <aside className={styles.sidebar} aria-label="Panel Optimization & Array Design Controls">
@@ -291,9 +287,16 @@ export function OptimizationSidebar({ onProceedToEnergy, onOpenComparison }: Opt
                   <div className={styles.consumptionHeader}>
                     <span className={styles.consumptionIcon}>✅</span>
                     <div className={styles.consumptionInfo}>
-                      <strong>Monthly Bill Target</strong>
+                      <strong>
+                        {consumption.source === 'bill_upload'
+                          ? `Uploaded Bill (${consumption.billData?.discomName || 'Scanned'})`
+                          : 'Monthly Bill Target'}
+                      </strong>
                       <span className={styles.consumptionMeta}>
                         ₹{panelAnalysis?.billInr.toLocaleString()}/month • ~{panelAnalysis?.monthlyKwh} units/mo
+                        {consumption.source === 'bill_upload' && consumption.billData?.monthlyKwhProfile && consumption.billData.monthlyKwhProfile.length > 1 && (
+                          <span style={{ color: '#38bdf8', marginLeft: '4px' }}>• 12-mo history</span>
+                        )}
                       </span>
                     </div>
                     <button

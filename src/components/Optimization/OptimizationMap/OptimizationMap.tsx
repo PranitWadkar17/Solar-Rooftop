@@ -352,7 +352,7 @@ export function OptimizationMap({
             ⚡ Placed {activeLayout.activePanelCount} panels for{' '}
             {consumption.monthlyBillAmountInr
               ? `₹${consumption.monthlyBillAmountInr.toLocaleString()}/mo bill`
-              : `${Math.round(consumption.annualKwh / 12).toLocaleString()} units/mo`}
+              : `${Math.round((consumption.annualKwh ?? 0) / 12).toLocaleString()} units/mo`}
           </span>
           <span style={{ color: '#64748b' }}>•</span>
           <span style={{ color: '#94a3b8' }}>Max {maxPanelCount} physical</span>

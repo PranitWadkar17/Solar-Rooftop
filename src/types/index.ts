@@ -124,6 +124,8 @@ export interface ElectricityConsumptionProfile {
   uploadedAt: string | null;
   monthlyBillAmountInr?: number | null;
   tariffRateInr?: number | null;
+  billData?: import('@/types/bill.js').ConfirmedBillData | null;
+  tariffPlan?: import('@/services/tariffService.js').TariffPlan | null;
 }
 
 export interface AssessmentState {

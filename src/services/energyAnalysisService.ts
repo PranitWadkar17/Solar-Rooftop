@@ -1,5 +1,6 @@
 import type { ElectricityConsumptionProfile, MonthlyConsumption } from '@/types/index.js';
 import type { PanelLayout } from '@/types/optimization.js';
+import { getTariffContext, calculateSolarSavings, type SolarSavingsBreakdown, type TariffPlan } from './tariffService.js';
 
 export interface MonthlyEnergyPoint {
   month: string;
@@ -40,6 +41,8 @@ export interface ConsumptionComparison {
   monthlyGeneration: MonthlyEnergyPoint[];
   monthlyConsumption: MonthlyConsumption[];
   monthlyComparison: MonthlyComparisonEntry[];
+  solarSavings?: import('@/services/tariffService.js').SolarSavingsBreakdown | null;
+  tariffPlan?: import('@/services/tariffService.js').TariffPlan | null;
 }
 
 // Monthly temperature coefficients (assuming moderate climate)
@@ -205,6 +208,14 @@ export function buildConsumptionComparison(
   if (annualGenerationKwh > annualConsumptionKwh) status = 'surplus';
   else if (annualGenerationKwh < annualConsumptionKwh) status = 'shortfall';
 
+  // Compute month-by-month financial solar savings if tariffPlan is available
+  const plan = consumption.tariffPlan || getTariffContext({ confirmedBillData: consumption.billData });
+  const loadKw = consumption.billData?.sanctionedLoadKw ?? 3.0;
+
+  const monthlyConsumedUnits = monthlyComparison.map((m) => m.consumptionKwh);
+  const monthlyGeneratedUnits = monthlyComparison.map((m) => m.generationKwh);
+  const solarSavings = calculateSolarSavings(plan, monthlyConsumedUnits, monthlyGeneratedUnits, loadKw);
+
   return {
     annualGenerationKwh,
     annualConsumptionKwh,
@@ -218,5 +229,7 @@ export function buildConsumptionComparison(
     monthlyGeneration,
     monthlyConsumption,
     monthlyComparison,
+    solarSavings,
+    tariffPlan: plan,
   };
 }
