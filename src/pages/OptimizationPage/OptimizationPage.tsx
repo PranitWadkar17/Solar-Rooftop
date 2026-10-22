@@ -47,6 +47,7 @@ function OptimizationWorkspaceInner({
         <OptimizationSidebar
           onProceedToEnergy={handleProceedToEnergy}
           onOpenComparison={() => setIsCompareOpen(true)}
+          onOpenChangeModule={() => setIsConsumptionModalOpen(true)}
         />
 
         {/* Right Photovoltaic Map Canvas */}

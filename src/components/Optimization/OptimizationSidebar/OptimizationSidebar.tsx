@@ -1,17 +1,21 @@
 import { useState, useMemo } from 'react';
 import { useOptimization } from '@/context/OptimizationContext';
-import { DEFAULT_PANEL_LIBRARY } from '@/data/panelLibrary';
 import { formatArea } from '@/utils/geoUtils';
 import { calculateRequiredPanelCount } from '@/utils/consumptionUtils';
-import type { PanelOrientation, OptimizationObjective } from '@/types/optimization.js';
+import type { OptimizationObjective } from '@/types/optimization.js';
 import styles from './OptimizationSidebar.module.css';
 
 interface OptimizationSidebarProps {
   onProceedToEnergy: () => void;
   onOpenComparison: () => void;
+  onOpenChangeModule?: () => void;
 }
 
-export function OptimizationSidebar({ onProceedToEnergy, onOpenComparison }: OptimizationSidebarProps) {
+export function OptimizationSidebar({
+  onProceedToEnergy,
+  onOpenComparison,
+  onOpenChangeModule,
+}: OptimizationSidebarProps) {
   const {
     state,
     dispatch,
@@ -19,8 +23,6 @@ export function OptimizationSidebar({ onProceedToEnergy, onOpenComparison }: Opt
     selectedPanel,
     panelSpec,
     constraints,
-    changePanelSpec,
-    updateConstraints,
     reoptimize,
     finalizeLayout,
     consumption,
@@ -32,12 +34,22 @@ export function OptimizationSidebar({ onProceedToEnergy, onOpenComparison }: Opt
     maxPotentialAnnualEnergyKwh,
     solarResourceKwhPerKwp,
     estimatedAnnualEnergyKwh,
+    accurateSolarMetrics,
+    dynamicCostEstimation,
     isPlacing,
   } = useOptimization();
 
   const [activeTab, setActiveTab] = useState<'design' | 'metrics' | 'inspector'>('design');
   const [consumptionInput, setConsumptionInput] = useState<string>('');
   const [consumptionError, setConsumptionError] = useState<string | null>(null);
+
+  const mfgBadge = useMemo(() => {
+    const m = panelSpec.manufacturer.toLowerCase();
+    if (m.includes('tata')) return '🏢 Tata Power Solar';
+    if (m.includes('vikram')) return '⚡ Vikram Solar';
+    if (m.includes('adani')) return '💎 Adani Solar';
+    return panelSpec.manufacturer;
+  }, [panelSpec.manufacturer]);
 
   // Calculate the dynamic panel requirement from the current monthly bill
   const panelAnalysis = useMemo(() => {
@@ -182,7 +194,7 @@ export function OptimizationSidebar({ onProceedToEnergy, onOpenComparison }: Opt
             <button
               type="button"
               className={styles.placeMaxBtn}
-              onClick={placeMaxCapacityLayout}
+              onClick={() => placeMaxCapacityLayout()}
               style={{ marginTop: '14px', width: '100%', padding: '10px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}
             >
               Or Place Maximum Physical Capacity ({maxPanelCount} panels)
@@ -356,31 +368,34 @@ export function OptimizationSidebar({ onProceedToEnergy, onOpenComparison }: Opt
                     <div className={styles.energyRow}>
                       <span>Est. Monthly Savings</span>
                       <strong className={styles.energyValueGreen}>
-                        ₹{panelAnalysis?.monthlySavingsInr.toLocaleString()} / mo
+                        ₹{dynamicCostEstimation.monthlySavingsInr.toLocaleString()} / mo
                       </strong>
                     </div>
                     <div className={styles.energyRow}>
                       <span>Est. Annual Generation</span>
                       <strong className={styles.energyValue}>
-                        {estimatedAnnualEnergyKwh.toLocaleString()} kWh
+                        {accurateSolarMetrics.estimatedAnnualGenerationKwh.toLocaleString()} kWh
                       </strong>
                     </div>
                     <div className={styles.energyRow}>
                       <span>Monthly Energy Output</span>
                       <strong className={styles.energyValue}>
-                        ~{Math.round(estimatedAnnualEnergyKwh / 12).toLocaleString()} units/mo
+                        ~{accurateSolarMetrics.monthlyAverageEnergyKwh.toLocaleString()} units/mo
+                        <span className={styles.seasonalRangeSub}>
+                          Seasonal: {accurateSolarMetrics.monthlyRange.minMonthlyKwh} ({accurateSolarMetrics.monthlyRange.minMonthName}) – {accurateSolarMetrics.monthlyRange.maxMonthlyKwh} ({accurateSolarMetrics.monthlyRange.maxMonthName}) units/mo
+                        </span>
                       </strong>
                     </div>
                     <div className={styles.energyDivider} />
                     <div className={styles.energyRow}>
                       <span>Bill Offset Ratio</span>
                       <strong className={
-                        estimatedAnnualEnergyKwh >= (consumption.annualKwh ?? 0)
+                        accurateSolarMetrics.estimatedAnnualGenerationKwh >= (consumption.annualKwh ?? 0)
                           ? styles.energyValueGreen
                           : styles.energyValueWarn
                       }>
                         {consumption.annualKwh && consumption.annualKwh > 0
-                          ? `${Math.round((estimatedAnnualEnergyKwh / consumption.annualKwh) * 100)}%`
+                          ? `${Math.round((accurateSolarMetrics.estimatedAnnualGenerationKwh / consumption.annualKwh) * 100)}%`
                           : '—'}
                       </strong>
                     </div>
@@ -389,7 +404,7 @@ export function OptimizationSidebar({ onProceedToEnergy, onOpenComparison }: Opt
               )}
             </div>
 
-            {/* Rooftop Capacity Recommendation (always visible) */}
+            {/* Rooftop Capacity Recommendation */}
             <div className={styles.sectionCard}>
               <div className={styles.cardHeader}>
                 <span className={styles.cardTitle}>📊 Rooftop Capacity</span>
@@ -406,14 +421,50 @@ export function OptimizationSidebar({ onProceedToEnergy, onOpenComparison }: Opt
                 <div className={styles.capacityItem}>
                   <span className={styles.capacityLabel}>Max Capacity</span>
                   <strong className={styles.capacityValue}>
-                    {Math.round(((maxPanelCount * panelSpec.ratedPowerW) / 1000) * 100) / 100} kWp
+                    {accurateSolarMetrics.maxCapacityKWp} kWp
                   </strong>
                 </div>
                 <div className={styles.capacityItem}>
                   <span className={styles.capacityLabel}>Est. Annual Energy</span>
                   <strong className={styles.capacityValueGreen}>
-                    {estimatedAnnualEnergyKwh.toLocaleString()} kWh
+                    {accurateSolarMetrics.maxPotentialAnnualEnergyKwh.toLocaleString()} kWh
                   </strong>
+                </div>
+              </div>
+            </div>
+
+            {/* Turnkey System Cost & Subsidy Estimation Card */}
+            <div className={styles.sectionCard}>
+              <div className={styles.cardHeader}>
+                <span className={styles.cardTitle}>💰 System Cost & Subsidy</span>
+                <span className={styles.hardwareBadge}>2025-26 Dynamic EPC</span>
+              </div>
+
+              <div className={styles.financialGrid}>
+                <div className={styles.financialRow}>
+                  <span>Gross EPC Cost (12% GST)</span>
+                  <strong>₹{dynamicCostEstimation.grossCostInr.toLocaleString()}</strong>
+                </div>
+                <div className={styles.financialSubsidyRow}>
+                  <span>🎁 PM Surya Ghar Subsidy</span>
+                  <strong>- ₹{dynamicCostEstimation.subsidyInr.toLocaleString()}</strong>
+                </div>
+                <div className={styles.financialNetRow}>
+                  <span>Net Out-of-Pocket Cost</span>
+                  <strong className={styles.financialNetVal}>
+                    ₹{dynamicCostEstimation.netCostInr.toLocaleString()}
+                  </strong>
+                </div>
+              </div>
+
+              <div className={styles.financialRoiGrid}>
+                <div className={styles.financialRoiItem}>
+                  <span className={styles.financialRoiLabel}>Payback Period</span>
+                  <strong className={styles.financialRoiVal}>{dynamicCostEstimation.paybackYears} Years</strong>
+                </div>
+                <div className={styles.financialRoiItem}>
+                  <span className={styles.financialRoiLabel}>25-Yr Net Savings</span>
+                  <strong className={styles.financialRoiVal}>₹{dynamicCostEstimation.twentyFiveYearSavingsInr.toLocaleString()}</strong>
                 </div>
               </div>
             </div>
@@ -442,107 +493,67 @@ export function OptimizationSidebar({ onProceedToEnergy, onOpenComparison }: Opt
               </div>
             </div>
 
-            {/* Hardware Module Catalog Picker */}
+            {/* Hardware Module Specification Card */}
             <div className={styles.sectionCard}>
               <div className={styles.cardHeader}>
                 <span className={styles.cardTitle}>PV Module Specification</span>
                 <span className={styles.hardwareBadge}>{panelSpec.efficiencyPct}% Eff</span>
               </div>
 
-              <div className={styles.panelSelectWrapper}>
-                <select
-                  className={styles.panelSelect}
-                  value={panelSpec.id}
-                  onChange={(e) => {
-                    const selected = DEFAULT_PANEL_LIBRARY.find((p) => p.id === e.target.value);
-                    if (selected) changePanelSpec(selected);
-                  }}
-                >
-                  {DEFAULT_PANEL_LIBRARY.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.manufacturer} {p.model} ({p.ratedPowerW}W • {p.lengthM}m × {p.widthM}m)
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className={styles.specDetailsGrid}>
-                <div>Rated Power: <strong>{panelSpec.ratedPowerW} W</strong></div>
-                <div>Technology: <strong>{panelSpec.technology}</strong></div>
-                <div>Dimensions: <strong>{panelSpec.lengthM}m × {panelSpec.widthM}m</strong></div>
-                <div>Temp Coeff: <strong>{panelSpec.tempCoeffPmax}%/°C</strong></div>
-              </div>
-            </div>
-
-            {/* Orientation & Placement Constraints */}
-            <div className={styles.sectionCard}>
-              <span className={styles.cardTitle}>Mounting & Spacing Constraints</span>
-
-              {/* Orientation Toggle */}
-              <div className={styles.constraintRow}>
-                <span className={styles.constraintLabel}>Module Orientation</span>
-                <div className={styles.toggleGroup}>
-                  {(['portrait', 'landscape'] as PanelOrientation[]).map((orient) => (
-                    <button
-                      key={orient}
-                      className={`${styles.toggleBtn} ${constraints.orientation === orient ? styles.toggleActive : ''}`}
-                      onClick={() => updateConstraints({ orientation: orient })}
-                    >
-                      {orient === 'portrait' ? 'Vertical (Portrait)' : 'Horizontal (Landscape)'}
-                    </button>
-                  ))}
+              <div className={styles.moduleDisplayCard}>
+                <div className={styles.moduleBadgeRow}>
+                  <span className={styles.moduleBrandTag}>{mfgBadge}</span>
+                  <span className={styles.moduleWattagePill}>{panelSpec.ratedPowerW} W</span>
                 </div>
-              </div>
 
-              {/* Tilt Slider */}
-              <div className={styles.sliderControl}>
-                <div className={styles.sliderHeader}>
-                  <span className={styles.constraintLabel}>Mount Tilt Angle</span>
-                  <strong className={styles.sliderVal}>{constraints.tiltDeg}°</strong>
-                </div>
-                <input
-                  type="range"
-                  min="10"
-                  max="35"
-                  step="1"
-                  value={constraints.tiltDeg}
-                  className={styles.rangeInput}
-                  onChange={(e) => updateConstraints({ tiltDeg: parseInt(e.target.value, 10) })}
-                />
-              </div>
+                <h4 className={styles.moduleModelTitle}>{panelSpec.model}</h4>
 
-              {/* Row Spacing Pitch */}
-              <div className={styles.sliderControl}>
-                <div className={styles.sliderHeader}>
-                  <span className={styles.constraintLabel}>Inter-Row Pitch Spacing</span>
-                  <strong className={styles.sliderVal}>{constraints.rowSpacingM} m</strong>
+                <div className={styles.specDetailsGrid}>
+                  <div className={styles.specDetailItem}>
+                    <span className={styles.specDetailLabel}>Dimensions</span>
+                    <strong className={styles.specDetailVal}>{panelSpec.lengthM}m × {panelSpec.widthM}m</strong>
+                  </div>
+                  <div className={styles.specDetailItem}>
+                    <span className={styles.specDetailLabel}>Footprint</span>
+                    <strong className={styles.specDetailVal}>{(panelSpec.lengthM * panelSpec.widthM).toFixed(2)} m²</strong>
+                  </div>
+                  <div className={styles.specDetailItem}>
+                    <span className={styles.specDetailLabel}>Technology</span>
+                    <strong className={styles.specDetailVal}>{panelSpec.technology}</strong>
+                  </div>
+                  <div className={styles.specDetailItem}>
+                    <span className={styles.specDetailLabel}>Temp Coeff</span>
+                    <strong className={styles.specDetailVal}>{panelSpec.tempCoeffPmax}%/°C</strong>
+                  </div>
+                  <div className={styles.specDetailItem}>
+                    <span className={styles.specDetailLabel}>Roof Load</span>
+                    <strong className={styles.specDetailVal}>{panelSpec.roofLoadBearingKgPerSqM ?? '18 - 22 kg/m²'}</strong>
+                  </div>
+                  <div className={styles.specDetailItem}>
+                    <span className={styles.specDetailLabel}>Wind Rating</span>
+                    <strong className={styles.specDetailVal}>Up to {panelSpec.windSpeedRatingKmh ?? 180} km/h</strong>
+                  </div>
+                  {panelSpec.dailyMinMaxKwh && (
+                    <div className={`${styles.specDetailItem} ${styles.specDetailFull}`}>
+                      <span className={styles.specDetailLabel}>Daily Output</span>
+                      <strong className={styles.specDetailValOrange}>
+                        {panelSpec.dailyMinMaxKwh.min} – {panelSpec.dailyMinMaxKwh.max} kWh / day
+                      </strong>
+                    </div>
+                  )}
                 </div>
-                <input
-                  type="range"
-                  min="0.4"
-                  max="1.5"
-                  step="0.1"
-                  value={constraints.rowSpacingM}
-                  className={styles.rangeInput}
-                  onChange={(e) => updateConstraints({ rowSpacingM: parseFloat(e.target.value) })}
-                />
-              </div>
 
-              {/* Edge Setback Clearance */}
-              <div className={styles.sliderControl}>
-                <div className={styles.sliderHeader}>
-                  <span className={styles.constraintLabel}>Parapet Edge Setback</span>
-                  <strong className={styles.sliderVal}>{constraints.edgeClearanceM} m</strong>
-                </div>
-                <input
-                  type="range"
-                  min="0.3"
-                  max="1.2"
-                  step="0.1"
-                  value={constraints.edgeClearanceM}
-                  className={styles.rangeInput}
-                  onChange={(e) => updateConstraints({ edgeClearanceM: parseFloat(e.target.value) })}
-                />
+                {onOpenChangeModule && (
+                  <button
+                    type="button"
+                    className={styles.changeModuleBtn}
+                    onClick={onOpenChangeModule}
+                    title="Change manufacturer brand, panel size, or form factor"
+                  >
+                    <span>🔄</span>
+                    <span>Change Manufacturer & Module</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>

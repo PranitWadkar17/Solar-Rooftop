@@ -58,15 +58,15 @@ export function validateCoordinates(lat: number, lng: number): CoordinateValidat
     (Math.abs(lat) < 60 && (lng < -160 || lng > 160)) || // Pacific
     (lat > 50 && lat < 80 && lng > -40 && lng < 40) // North Atlantic/Arctic
   );
-  
+
   if (isLikelyOcean) {
     warnings.push('Coordinates appear to be over open ocean - verify location');
   }
 
   const valid = errors.length === 0;
-  const normalized = valid ? { 
+  const normalized = valid ? {
     lat: Math.round(lat * 1e8) / 1e8, // 8 decimal places = ~1.1mm precision
-    lng: Math.round(lng * 1e8) / 1e8 
+    lng: Math.round(lng * 1e8) / 1e8
   } : null;
 
   return { valid, errors, warnings, normalized };
@@ -118,11 +118,11 @@ function normalizeNominatimResult(raw: NominatimResult): GeocodingResult | null 
     longitude: validation.normalized!.lng,
     boundingBox: raw.boundingbox
       ? [
-          parseFloat(raw.boundingbox[0]),
-          parseFloat(raw.boundingbox[1]),
-          parseFloat(raw.boundingbox[2]),
-          parseFloat(raw.boundingbox[3]),
-        ]
+        parseFloat(raw.boundingbox[0]),
+        parseFloat(raw.boundingbox[1]),
+        parseFloat(raw.boundingbox[2]),
+        parseFloat(raw.boundingbox[3]),
+      ]
       : null,
     addressParts: {
       name: addr.house_number
@@ -136,6 +136,143 @@ function normalizeNominatimResult(raw: NominatimResult): GeocodingResult | null 
     },
     type: raw.type,
   };
+}
+
+const GEOAPIFY_API_KEY = import.meta.env.VITE_GEOAPIFY_API_KEY;
+
+interface GeoapifyFeature {
+  type: 'Feature';
+  properties: {
+    place_id?: string;
+    formatted?: string;
+    name?: string;
+    housenumber?: string;
+    street?: string;
+    suburb?: string;
+    district?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    postcode?: string;
+    lat: number;
+    lon: number;
+    result_type?: string;
+    address_line1?: string;
+    address_line2?: string;
+    bbox?: [number, number, number, number];
+  };
+  geometry: {
+    type: 'Point';
+    coordinates: [number, number];
+  };
+  bbox?: [number, number, number, number];
+}
+
+interface GeoapifyResponse {
+  type: 'FeatureCollection';
+  features: GeoapifyFeature[];
+}
+
+function normalizeGeoapifyResult(feature: GeoapifyFeature): GeocodingResult | null {
+  const p = feature.properties;
+  if (!p) return null;
+
+  const lat = p.lat ?? feature.geometry?.coordinates?.[1];
+  const lng = p.lon ?? feature.geometry?.coordinates?.[0];
+
+  const validation = validateCoordinates(lat, lng);
+  if (!validation.valid) return null;
+
+  // GeoJSON bbox is [minLon, minLat, maxLon, maxLat] = [west, south, east, north]
+  // GeocodingResult boundingBox format is [south, north, west, east]
+  const bbox = p.bbox || feature.bbox;
+  let boundingBox: [number, number, number, number] | null = null;
+  if (bbox && bbox.length === 4) {
+    const [west, south, east, north] = bbox;
+    boundingBox = [south, north, west, east];
+  }
+
+  const name = p.housenumber && p.street
+    ? `${p.housenumber} ${p.street}`
+    : p.name || p.street || p.suburb || p.address_line1;
+
+  return {
+    id: p.place_id || `geoapify-${lat}-${lng}-${Math.random().toString(36).substring(2, 7)}`,
+    displayName: p.formatted || [p.address_line1, p.address_line2].filter(Boolean).join(', ') || p.name || '',
+    latitude: validation.normalized!.lat,
+    longitude: validation.normalized!.lng,
+    boundingBox,
+    addressParts: {
+      name,
+      locality: p.suburb || p.district,
+      city: p.city,
+      state: p.state,
+      country: p.country,
+      postcode: p.postcode,
+    },
+    type: p.result_type,
+  };
+}
+
+async function searchWithGeoapify(query: string, limit: number = 8): Promise<GeocodingResult[]> {
+  const url = new URL('/v1/geocode/search', 'https://api.geoapify.com');
+  url.searchParams.set('text', query);
+  url.searchParams.set('limit', String(limit));
+  url.searchParams.set('format', 'geojson');
+  url.searchParams.set('apiKey', GEOAPIFY_API_KEY);
+
+  const response = await fetch(url.toString(), {
+    headers: { 'Accept': 'application/json' },
+    signal: AbortSignal.timeout(8000),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Geoapify request failed: ${response.status} ${response.statusText}`);
+  }
+
+  const data: GeoapifyResponse = await response.json();
+  return (data.features || [])
+    .map(normalizeGeoapifyResult)
+    .filter((r): r is GeocodingResult => r !== null);
+}
+
+async function autocompleteWithGeoapify(query: string, limit: number = 5): Promise<GeocodingResult[]> {
+  const url = new URL('/v1/geocode/autocomplete', 'https://api.geoapify.com');
+  url.searchParams.set('text', query);
+  url.searchParams.set('limit', String(limit));
+  url.searchParams.set('format', 'geojson');
+  url.searchParams.set('apiKey', GEOAPIFY_API_KEY);
+
+  const response = await fetch(url.toString(), {
+    headers: { 'Accept': 'application/json' },
+    signal: AbortSignal.timeout(5000),
+  });
+
+  if (!response.ok) return [];
+
+  const data: GeoapifyResponse = await response.json();
+  return (data.features || [])
+    .map(normalizeGeoapifyResult)
+    .filter((r): r is GeocodingResult => r !== null);
+}
+
+async function reverseGeocodeWithGeoapify(lat: number, lng: number): Promise<GeocodingResult | null> {
+  const url = new URL('/v1/geocode/reverse', 'https://api.geoapify.com');
+  url.searchParams.set('lat', String(lat));
+  url.searchParams.set('lon', String(lng));
+  url.searchParams.set('format', 'geojson');
+  url.searchParams.set('apiKey', GEOAPIFY_API_KEY);
+
+  const response = await fetch(url.toString(), {
+    headers: { 'Accept': 'application/json' },
+    signal: AbortSignal.timeout(8000),
+  });
+
+  if (!response.ok) return null;
+
+  const data: GeoapifyResponse = await response.json();
+  if (!data.features || data.features.length === 0) return null;
+  return normalizeGeoapifyResult(data.features[0]);
 }
 
 async function searchWithNominatim(query: string, limit: number = 8): Promise<GeocodingResult[]> {
@@ -162,7 +299,7 @@ async function searchWithNominatim(query: string, limit: number = 8): Promise<Ge
     }
 
     const data: NominatimResult[] = await response.json();
-    
+
     // Filter and normalize results, removing any with invalid coordinates
     return data
       .map(normalizeNominatimResult)
@@ -188,13 +325,21 @@ export async function searchLocation(query: string): Promise<GeocodingResult[]> 
   const trimmed = query.trim();
   if (!trimmed) return [];
 
-  const provider = import.meta.env.VITE_GEOCODING_PROVIDER ?? 'nominatim';
+  const provider = import.meta.env.VITE_GEOCODING_PROVIDER ?? (GEOAPIFY_API_KEY ? 'geoapify' : 'nominatim');
 
-  switch (provider) {
-    case 'nominatim':
-    default:
-      return searchWithNominatim(trimmed, 8);
+  if (provider === 'geoapify' || GEOAPIFY_API_KEY) {
+    try {
+      const geoapifyResults = await searchWithGeoapify(trimmed, 8);
+      if (geoapifyResults.length > 0) {
+        return geoapifyResults;
+      }
+    } catch (err) {
+      console.warn('Geoapify search failed, falling back to Nominatim:', err);
+    }
   }
+
+  // Fallback to Nominatim if Geoapify returns no results or fails
+  return searchWithNominatim(trimmed, 8);
 }
 
 /**
@@ -204,6 +349,19 @@ export async function searchLocation(query: string): Promise<GeocodingResult[]> 
 export async function autocompleteSuggestions(query: string): Promise<GeocodingResult[]> {
   const trimmed = query.trim();
   if (trimmed.length < 3) return []; // Need at least 3 chars for meaningful results
+
+  const provider = import.meta.env.VITE_GEOCODING_PROVIDER ?? (GEOAPIFY_API_KEY ? 'geoapify' : 'nominatim');
+
+  if (provider === 'geoapify' || GEOAPIFY_API_KEY) {
+    try {
+      const geoapifySuggestions = await autocompleteWithGeoapify(trimmed, 5);
+      if (geoapifySuggestions.length > 0) {
+        return geoapifySuggestions;
+      }
+    } catch {
+      // Fall through to Nominatim autocomplete
+    }
+  }
 
   try {
     const url = new URL('/search', NOMINATIM_BASE);
@@ -244,6 +402,20 @@ export async function reverseGeocode(lat: number, lng: number): Promise<Geocodin
     console.warn('Reverse geocode coordinate warnings:', validation.warnings);
   }
 
+  const provider = import.meta.env.VITE_GEOCODING_PROVIDER ?? (GEOAPIFY_API_KEY ? 'geoapify' : 'nominatim');
+
+  if (provider === 'geoapify' || GEOAPIFY_API_KEY) {
+    try {
+      const geoResult = await reverseGeocodeWithGeoapify(
+        validation.normalized!.lat,
+        validation.normalized!.lng
+      );
+      if (geoResult) return geoResult;
+    } catch {
+      // Fall through to Nominatim
+    }
+  }
+
   try {
     const url = new URL('/reverse', NOMINATIM_BASE);
     url.searchParams.set('lat', String(validation.normalized!.lat));
@@ -270,3 +442,4 @@ export async function reverseGeocode(lat: number, lng: number): Promise<Geocodin
     return null;
   }
 }
+

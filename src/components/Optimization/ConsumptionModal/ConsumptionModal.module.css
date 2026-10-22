@@ -22,12 +22,12 @@
 }
 
 .modalCard {
-  background: #111827;
+  background: #0f172a;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 16px;
-  max-width: 620px;
+  border-radius: 18px;
+  max-width: 840px;
   width: 100%;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.05);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -49,7 +49,7 @@
   padding: 24px 28px 16px 28px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   position: relative;
-  background: linear-gradient(180deg, rgba(30, 41, 59, 0.6) 0%, rgba(17, 24, 39, 0) 100%);
+  background: linear-gradient(180deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0) 100%);
 }
 
 .badge {
@@ -110,8 +110,8 @@
   padding: 24px 28px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  max-height: calc(85vh - 160px);
+  gap: 22px;
+  max-height: calc(85vh - 150px);
   overflow-y: auto;
 }
 
@@ -169,6 +169,21 @@
   color: #64748b;
 }
 
+/* Section Header & Subnotes */
+.sectionHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.sectionHelpText {
+  font-size: 12px;
+  color: #94a3b8;
+  margin: 0;
+  line-height: 1.4;
+}
+
 /* Input Section */
 .inputSection {
   display: flex;
@@ -177,9 +192,9 @@
 }
 
 .inputLabel {
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: #f1f5f9;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -194,6 +209,16 @@
   border-radius: 6px;
 }
 
+.mfgSubnote {
+  font-size: 11px;
+  font-weight: 600;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
 .inputWrapper {
   position: relative;
   display: flex;
@@ -202,13 +227,13 @@
 
 .consumptionInput {
   width: 100%;
-  padding: 12px 120px 12px 16px;
-  background: #0f172a;
-  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  padding: 12px 100px 12px 16px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 10px;
-  color: #f8fafc;
   font-size: 18px;
   font-weight: 700;
+  color: #f8fafc;
   outline: none;
   transition: all 0.2s ease;
 }
@@ -218,44 +243,34 @@
   box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
 }
 
-.consumptionInput::placeholder {
-  color: #475569;
-  font-weight: 400;
-}
-
 .inputUnit {
   position: absolute;
-  right: 14px;
+  right: 16px;
   font-size: 13px;
   font-weight: 600;
   color: #94a3b8;
-  pointer-events: none;
 }
 
 .inputError {
   font-size: 12px;
   color: #f87171;
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.25);
-  padding: 6px 12px;
+  background: rgba(248, 113, 113, 0.1);
+  border: 1px solid rgba(248, 113, 113, 0.25);
+  padding: 6px 10px;
   border-radius: 6px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
 }
 
-/* Quick Consumption Presets */
 .presetsRow {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+  margin-top: 4px;
 }
 
 .presetLabel {
-  font-size: 11px;
-  color: #64748b;
-  margin-right: 4px;
+  font-size: 12px;
+  color: #94a3b8;
 }
 
 .presetBtn {
@@ -264,8 +279,8 @@
   color: #cbd5e1;
   padding: 4px 10px;
   border-radius: 6px;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -273,27 +288,481 @@
 .presetBtn:hover {
   background: rgba(255, 255, 255, 0.1);
   color: #ffffff;
-  border-color: #38bdf8;
 }
 
 .presetBtnActive {
   background: rgba(56, 189, 248, 0.15);
   border-color: #38bdf8;
   color: #38bdf8;
+  font-weight: 600;
 }
 
-/* Dynamic Calculation Results */
+/* =========================================
+   Step 2: Manufacturer Selection Cards
+========================================= */
+.mfgSelectionSection {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mfgGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.mfgCard {
+  background: rgba(30, 41, 59, 0.4);
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 14px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+
+.mfgCard:hover {
+  background: rgba(30, 41, 59, 0.7);
+  border-color: rgba(56, 189, 248, 0.4);
+  transform: translateY(-2px);
+}
+
+.mfgCardActive {
+  background: linear-gradient(180deg, rgba(2, 132, 199, 0.16) 0%, rgba(15, 23, 42, 0.6) 100%);
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25), 0 8px 20px -4px rgba(0, 0, 0, 0.5);
+}
+
+.mfgCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mfgBadge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  padding: 2px 7px;
+  border-radius: 9999px;
+}
+
+.selectedCheck {
+  font-size: 11px;
+  font-weight: 700;
+  color: #4ade80;
+}
+
+.mfgBrandName {
+  font-size: 15px;
+  font-weight: 700;
+  color: #f8fafc;
+  margin: 0;
+}
+
+.mfgTagline {
+  font-size: 11px;
+  color: #94a3b8;
+  margin: 0;
+  line-height: 1.35;
+}
+
+.mfgFeatures {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 8px;
+}
+
+.mfgFeatureItem {
+  font-size: 11px;
+  color: #cbd5e1;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  line-height: 1.3;
+}
+
+.featureDot {
+  color: #38bdf8;
+  font-weight: 800;
+}
+
+/* =========================================
+   Step 3: Detailed Manufacturer Info Card
+========================================= */
+.mfgDetailsCard {
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.5) 100%);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.mfgDetailsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.detailsEyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  color: #38bdf8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: block;
+}
+
+.detailsTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: #f8fafc;
+  margin: 2px 0 0 0;
+}
+
+.certPills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.certPill {
+  font-size: 10px;
+  font-weight: 600;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 2px 7px;
+  border-radius: 6px;
+}
+
+.mfgOverviewText {
+  font-size: 12.5px;
+  color: #cbd5e1;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.mfgInsightsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.insightBox {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.insightTitle {
+  font-size: 12px;
+  font-weight: 700;
+  color: #f1f5f9;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.insightList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.insightList li {
+  font-size: 11.5px;
+  color: #94a3b8;
+  position: relative;
+  padding-left: 14px;
+  line-height: 1.35;
+}
+
+.insightList li::before {
+  content: '▸';
+  position: absolute;
+  left: 0;
+  color: #38bdf8;
+}
+
+.whenToUseBanner {
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 12px;
+  color: #fde68a;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  line-height: 1.4;
+}
+
+.warrantyFooter {
+  font-size: 11.5px;
+  color: #a7f3d0;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  padding: 6px 12px;
+  border-radius: 6px;
+}
+
+/* =========================================
+   Step 4: Module Sizes & Shapes Grid
+========================================= */
+.panelSizeSection {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.modelGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.modelCard {
+  background: rgba(30, 41, 59, 0.4);
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modelCard:hover {
+  background: rgba(30, 41, 59, 0.7);
+  border-color: rgba(56, 189, 248, 0.35);
+  transform: translateY(-2px);
+}
+
+.modelCardActive {
+  background: linear-gradient(180deg, rgba(2, 132, 199, 0.14) 0%, rgba(15, 23, 42, 0.5) 100%);
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25);
+}
+
+.modelHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.modelSeries {
+  font-size: 10px;
+  font-weight: 600;
+  color: #38bdf8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  display: block;
+}
+
+.modelName {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #f8fafc;
+  margin: 2px 0 0 0;
+  line-height: 1.3;
+}
+
+.wattageTag {
+  font-size: 12px;
+  font-weight: 800;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  padding: 3px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.dimensionRow {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  color: #cbd5e1;
+}
+
+.dimIcon {
+  font-size: 16px;
+}
+
+.dimSub {
+  display: block;
+  font-size: 10.5px;
+  color: #64748b;
+  margin-top: 1px;
+}
+
+/* Dynamic Energy Generation Range (Min - Max) */
+.energyRangeBox {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(15, 23, 42, 0.4) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.energyRangeHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #a7f3d0;
+}
+
+.dynamicPill {
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.15);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.energyRangeGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.rangeLabel {
+  display: block;
+  font-size: 10px;
+  color: #94a3b8;
+}
+
+.rangeValue {
+  font-size: 11.5px;
+  color: #f1f5f9;
+}
+
+.specMiniGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  font-size: 10.5px;
+  color: #94a3b8;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 6px 8px;
+  border-radius: 6px;
+}
+
+.specMiniGrid strong {
+  color: #e2e8f0;
+}
+
+.modelSuitsLine {
+  font-size: 11px;
+  color: #38bdf8;
+  line-height: 1.3;
+}
+
+.selectModelBtn {
+  margin-top: auto;
+  padding: 7px 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #cbd5e1;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+
+.selectModelBtn:hover {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.3);
+}
+
+.selectModelBtnActive {
+  background: #0284c7;
+  color: #ffffff;
+  border-color: #0284c7;
+}
+
+/* =========================================
+   Step 5: Dynamic System Sizing & Cost Prediction
+========================================= */
+.placementAndCostCard {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.calcHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.calcSectionTitle {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+.costBadge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  padding: 2px 7px;
+  border-radius: 9999px;
+}
+
 .calcGrid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 12px;
 }
 
 .calcCard {
-  background: #0f172a;
+  background: rgba(30, 41, 59, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 10px;
-  padding: 14px;
+  padding: 12px 14px;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -301,42 +770,45 @@
 
 .calcLabel {
   font-size: 11px;
-  font-weight: 500;
   color: #94a3b8;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+  font-weight: 500;
+}
+
+.calcValue {
+  font-size: 17px;
+  font-weight: 700;
+  color: #f8fafc;
 }
 
 .calcValueHighlight {
-  font-size: 24px;
-  font-weight: 800;
+  font-size: 17px;
+  font-weight: 700;
   color: #38bdf8;
-  letter-spacing: -0.02em;
 }
 
 .calcValueGreen {
-  font-size: 24px;
-  font-weight: 800;
+  font-size: 17px;
+  font-weight: 700;
   color: #4ade80;
-  letter-spacing: -0.02em;
 }
 
 .calcSub {
-  font-size: 11px;
+  font-size: 10.5px;
   color: #64748b;
+  line-height: 1.3;
 }
 
-/* Fit Message */
+/* Fit Banners */
 .fitBannerGood {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  padding: 10px 14px;
-  border-radius: 8px;
   background: rgba(34, 197, 94, 0.1);
   border: 1px solid rgba(34, 197, 94, 0.25);
+  border-radius: 8px;
+  padding: 10px 14px;
   font-size: 12px;
-  color: #86efac;
+  color: #dcfce7;
   line-height: 1.4;
 }
 
@@ -344,59 +816,160 @@
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  padding: 10px 14px;
-  border-radius: 8px;
   background: rgba(245, 158, 11, 0.1);
   border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: 8px;
+  padding: 10px 14px;
   font-size: 12px;
-  color: #fcd34d;
+  color: #fef3c7;
   line-height: 1.4;
 }
 
-/* Energy Breakdown Box */
-.energySummaryBox {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 10px;
-  padding: 12px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.fitIconLarge {
+  font-size: 16px;
 }
 
-.energyRow {
+/* Real Financial Cost & Subsidy Table */
+.financialCostBox {
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.7) 100%);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 10px;
+  padding: 14px 16px;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 12px;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.financialHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.financialTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.financialSub {
+  font-size: 11px;
   color: #94a3b8;
 }
 
-.energyRow strong {
-  color: #f1f5f9;
-  font-weight: 600;
+.costTable {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 12px 14px;
 }
 
-.energyDivider {
-  height: 1px;
-  background: rgba(255, 255, 255, 0.06);
+.costRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12.5px;
+  color: #cbd5e1;
+}
+
+.subsidyRow {
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px dashed rgba(16, 185, 129, 0.3);
+  padding: 6px 10px;
+  border-radius: 6px;
   margin: 2px 0;
 }
 
-/* Modal Footer */
+.subsidyHint {
+  display: block;
+  font-size: 10px;
+  color: #34d399;
+}
+
+.subsidyGreen {
+  color: #34d399;
+  font-size: 14px;
+}
+
+.costDivider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 4px 0;
+}
+
+.netCostRow {
+  font-size: 14px;
+}
+
+.netCostHint {
+  display: block;
+  font-size: 10.5px;
+  color: #94a3b8;
+}
+
+.netCostValue {
+  font-size: 18px;
+  font-weight: 800;
+  color: #38bdf8;
+}
+
+.roiBanner {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.roiItem {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.roiLabel {
+  font-size: 10.5px;
+  color: #94a3b8;
+}
+
+.roiHighlight {
+  font-size: 14px;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.roiGreen {
+  font-size: 14px;
+  font-weight: 700;
+  color: #34d399;
+}
+
+.roiSub {
+  font-size: 10px;
+  color: #64748b;
+}
+
+/* =========================================
+   Modal Footer & Actions
+========================================= */
 .modalFooter {
-  padding: 18px 28px 24px 28px;
+  padding: 16px 28px 24px 28px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(15, 23, 42, 0.95);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  background: #0f172a;
 }
 
 .placeBtn {
   flex: 1;
-  padding: 12px 20px;
+  padding: 13px 20px;
   background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
   color: #ffffff;
   border: none;
@@ -408,14 +981,14 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35);
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
   transition: all 0.2s ease;
 }
 
 .placeBtn:hover:not(:disabled) {
   background: linear-gradient(135deg, #0369a1 0%, #075985 100%);
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(2, 132, 199, 0.45);
+  box-shadow: 0 6px 18px rgba(2, 132, 199, 0.45);
 }
 
 .placeBtn:disabled {
@@ -426,7 +999,7 @@
 }
 
 .maxCapacityBtn {
-  padding: 12px 18px;
+  padding: 13px 18px;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.12);
   color: #cbd5e1;
@@ -518,10 +1091,10 @@
 }
 
 .tabBtnActive {
-  background: rgba(245, 158, 11, 0.15);
-  color: #fbbf24;
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
   font-weight: 600;
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  border: 1px solid rgba(56, 189, 248, 0.3);
 }
 
 .tabBadge {
@@ -531,4 +1104,28 @@
   padding: 2px 6px;
   border-radius: 9999px;
   font-weight: 600;
+}
+
+/* Responsiveness */
+@media (max-width: 768px) {
+  .mfgGrid,
+  .modelGrid,
+  .calcGrid,
+  .recommendationStats,
+  .roiBanner {
+    grid-template-columns: 1fr;
+  }
+
+  .mfgInsightsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .modalFooter {
+    flex-direction: column-reverse;
+  }
+
+  .maxCapacityBtn,
+  .placeBtn {
+    width: 100%;
+  }
 }

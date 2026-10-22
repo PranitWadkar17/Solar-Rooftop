@@ -97,6 +97,36 @@ function MapController({
   return null;
 }
 
+// --- Map controls bridge: listens for custom events and controls the map ---
+function MapControls() {
+  const map = useMap();
+
+  useEffect(() => {
+    const container = map.getContainer();
+
+    const handleZoomIn = () => map.zoomIn();
+    const handleZoomOut = () => map.zoomOut();
+    const handleRecenter = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.lat != null && detail?.lng != null) {
+        map.flyTo([detail.lat, detail.lng], detail.zoom ?? 18, { duration: 1 });
+      }
+    };
+
+    container.addEventListener('map:zoomIn', handleZoomIn);
+    container.addEventListener('map:zoomOut', handleZoomOut);
+    container.addEventListener('map:recenter', handleRecenter);
+
+    return () => {
+      container.removeEventListener('map:zoomIn', handleZoomIn);
+      container.removeEventListener('map:zoomOut', handleZoomOut);
+      container.removeEventListener('map:recenter', handleRecenter);
+    };
+  }, [map]);
+
+  return null;
+}
+
 // --- Main MapView ---
 interface MapViewProps {
   selectedLat: number | null;
@@ -132,6 +162,15 @@ export function MapView({
   const defaults = getDefaultMapCenter();
   const streetConfig = getStreetTileConfig();
   const satConfig = getSatelliteTileConfig();
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+
+  // Helper to dispatch custom events to the Leaflet map container
+  const dispatchMapEvent = useCallback((eventName: string, detail?: Record<string, unknown>) => {
+    const leafletEl = mapContainerRef.current?.querySelector('.leaflet-container');
+    if (leafletEl) {
+      leafletEl.dispatchEvent(new CustomEvent(eventName, { detail }));
+    }
+  }, []);
 
   // Manual polygon vertices in [lat, lng]
   const [drawingPoints, setDrawingPoints] = useState<[number, number][]>([]);
@@ -271,7 +310,7 @@ export function MapView({
   );
 
   return (
-    <div className={`${styles.mapContainer} ${isDrawingMode ? styles.drawingActive : ''}`}>
+    <div ref={mapContainerRef} className={`${styles.mapContainer} ${isDrawingMode ? styles.drawingActive : ''}`}>
       <MapContainer
         center={[defaults.lat, defaults.lng]}
         zoom={defaults.zoom}
@@ -301,6 +340,9 @@ export function MapView({
           isDrawingMode={isDrawingMode}
           onAddVertex={handleAddVertex}
         />
+
+        {/* Map controls bridge (zoom/recenter via custom events) */}
+        <MapControls />
 
         {/* Selected location marker */}
         {selectedLat !== null && selectedLng !== null && !isDrawingMode && (
@@ -444,10 +486,7 @@ export function MapView({
         <div className={styles.controlGroup}>
           <button
             className={styles.controlBtn}
-            onClick={() => {
-              const mapEl = document.querySelector('.leaflet-container');
-              if (mapEl) (mapEl as HTMLElement & { _leaflet_map?: L.Map })._leaflet_map?.zoomIn();
-            }}
+            onClick={() => dispatchMapEvent('map:zoomIn')}
             title="Zoom in"
             aria-label="Zoom in"
           >
@@ -457,10 +496,7 @@ export function MapView({
           </button>
           <button
             className={styles.controlBtn}
-            onClick={() => {
-              const mapEl = document.querySelector('.leaflet-container');
-              if (mapEl) (mapEl as HTMLElement & { _leaflet_map?: L.Map })._leaflet_map?.zoomOut();
-            }}
+            onClick={() => dispatchMapEvent('map:zoomOut')}
             title="Zoom out"
             aria-label="Zoom out"
           >
@@ -506,6 +542,24 @@ export function MapView({
             </svg>
           </button>
         </div>
+
+        {/* Recenter button */}
+        {selectedLat !== null && selectedLng !== null && (
+          <button
+            className={`${styles.controlBtn} ${styles.singleControl}`}
+            onClick={() => dispatchMapEvent('map:recenter', { lat: selectedLat, lng: selectedLng, zoom: 18 })}
+            title="Recenter to selected location"
+            aria-label="Recenter map"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3" />
+              <line x1="12" y1="2" x2="12" y2="5" />
+              <line x1="12" y1="19" x2="12" y2="22" />
+              <line x1="2" y1="12" x2="5" y2="12" />
+              <line x1="19" y1="12" x2="22" y2="12" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* Satellite unavailable notice */}

@@ -22,7 +22,6 @@ import {
 } from '@/services/panelOptimizationService';
 import { savePanelLayout, isLayoutOutdated } from '@/services/optimizationService';
 import { DEFAULT_PANEL_LIBRARY } from '@/data/panelLibrary';
-import { convertBillAmountToKwh, DEFAULT_TARIFF_RATE_INR } from '@/utils/consumptionUtils';
 import {
   type TariffPlan,
   GENERIC_RESIDENTIAL_PLAN,
@@ -31,6 +30,12 @@ import {
   billForUnits,
   averageRate,
 } from '@/services/tariffService';
+import {
+  calculateAccurateSolarMetrics,
+  calculateDynamicCostEstimation,
+  type AccurateSolarMetrics,
+  type DynamicCostEstimation,
+} from '@/services/energyPredictionService';
 
 
 // --- Actions ---
@@ -249,19 +254,22 @@ interface OptimizationContextValue {
   reoptimize: (objective?: OptimizationObjective) => void;
   finalizeLayout: () => void;
   setMonthlyConsumption: (monthlyKwh: number) => void;
-  setMonthlyBillAmount: (billAmountInr: number) => void;
-  setConfirmedBillData: (data: import('@/types/bill.js').ConfirmedBillData, fileName?: string) => void;
+  setMonthlyBillAmount: (billAmountInr: number, selectedPanelSpec?: PanelSpecification) => void;
+  setConfirmedBillData: (data: import('@/types/bill.js').ConfirmedBillData, fileName?: string, selectedPanelSpec?: PanelSpecification) => void;
   clearConsumption: () => void;
-  placeMaxCapacityLayout: () => void;
+  placeMaxCapacityLayout: (customPanelSpec?: PanelSpecification) => void;
   maxPanelCount: number;
   maxPotentialAnnualEnergyKwh: number;
   solarResourceKwhPerKwp: number;
   estimatedAnnualEnergyKwh: number;
+  accurateSolarMetrics: AccurateSolarMetrics;
+  dynamicCostEstimation: DynamicCostEstimation;
   isPlacing: boolean;
   placingMessage: string | null;
 }
 
 const OptimizationContext = createContext<OptimizationContextValue | null>(null);
+
 
 // --- Provider ---
 
@@ -436,20 +444,23 @@ export function OptimizationProvider({
     return maxPanels.length;
   }, [rooftop, solarAnalysis, panelSpec, constraints]);
 
-  // Maximum potential energy if roof is fully populated with panels
-  const maxPotentialAnnualEnergyKwh = useMemo(() => {
-    if (maxPanelCount === 0) return 0;
-    const maxCapacityKWp = (maxPanelCount * panelSpec.ratedPowerW) / 1000;
-    const performanceRatio = 0.78;
-    return Math.round(maxCapacityKWp * solarResourceKwhPerKwp * performanceRatio);
-  }, [maxPanelCount, panelSpec, solarResourceKwhPerKwp]);
+  // Real-world, engineering accurate solar metrics
+  const accurateSolarMetrics = useMemo<AccurateSolarMetrics>(() => {
+    const activeCount = activeLayout?.activePanelCount ?? 0;
+    return calculateAccurateSolarMetrics(
+      activeCount,
+      panelSpec,
+      solarAnalysis,
+      maxPanelCount,
+      constraints.tiltDeg
+    );
+  }, [activeLayout?.activePanelCount, panelSpec, solarAnalysis, maxPanelCount, constraints.tiltDeg]);
 
-  // Dynamically calculate estimated annual energy production from the active layout
-  const estimatedAnnualEnergyKwh = useMemo(() => {
-    if (!activeLayout) return 0;
-    const performanceRatio = 0.78;
-    return Math.round(activeLayout.systemCapacityKWp * solarResourceKwhPerKwp * performanceRatio);
-  }, [activeLayout, solarResourceKwhPerKwp]);
+  // Maximum potential energy if roof is fully populated with panels
+  const maxPotentialAnnualEnergyKwh = accurateSolarMetrics.maxPotentialAnnualEnergyKwh;
+
+  // Dynamically calculated estimated annual energy production from the active layout
+  const estimatedAnnualEnergyKwh = accurateSolarMetrics.estimatedAnnualGenerationKwh;
 
   // Set monthly consumption and regenerate layouts with consumption-optimized placement
   const setMonthlyConsumption = useCallback((monthlyKwh: number) => {
@@ -518,16 +529,21 @@ export function OptimizationProvider({
   }, [rooftop, solarAnalysis, panelSpec, constraints, solarResourceKwhPerKwp, maxPanelCount]);
 
   // Place maximum capacity layout on demand
-  const placeMaxCapacityLayout = useCallback(() => {
+  const placeMaxCapacityLayout = useCallback((customPanelSpec?: PanelSpecification) => {
     if (!rooftop || !solarAnalysis?.selectedArea) return;
 
+    const activeSpec = customPanelSpec ?? panelSpec;
+    if (customPanelSpec && customPanelSpec.id !== panelSpec.id) {
+      setPanelSpec(customPanelSpec);
+    }
+
     setIsPlacing(true);
-    setPlacingMessage(`Placing maximum capacity (${maxPanelCount} panels) across selected solar area...`);
+    setPlacingMessage(`Placing maximum capacity (${maxPanelCount} panels) with ${activeSpec.manufacturer} ${activeSpec.model}...`);
 
     const candidateLayouts = generateCandidateLayouts(
       rooftop,
       solarAnalysis.selectedArea,
-      panelSpec,
+      activeSpec,
       constraints,
       solarAnalysis,
       null
@@ -647,8 +663,27 @@ export function OptimizationProvider({
     return null;
   }, [state.consumption, tariffPlan]);
 
+  // Dynamic Financial Cost & Subsidy Estimation
+  const dynamicCostEstimation = useMemo<DynamicCostEstimation>(() => {
+    const activeCap = accurateSolarMetrics.activeCapacityKWp;
+    const billAmt = monthlyBillAmountInr ?? 2500;
+    const monthlyGenerated = accurateSolarMetrics.monthlyAverageEnergyKwh;
+    return calculateDynamicCostEstimation(
+      activeCap,
+      panelSpec,
+      billAmt,
+      tariffRateInr,
+      monthlyGenerated
+    );
+  }, [accurateSolarMetrics.activeCapacityKWp, accurateSolarMetrics.monthlyAverageEnergyKwh, panelSpec, monthlyBillAmountInr, tariffRateInr]);
+
   // Set monthly bill amount in INR and place panels accordingly
-  const setMonthlyBillAmount = useCallback((billAmountInr: number) => {
+  const setMonthlyBillAmount = useCallback((billAmountInr: number, selectedPanelSpec?: PanelSpecification) => {
+    const activeSpec = selectedPanelSpec ?? panelSpec;
+    if (selectedPanelSpec && selectedPanelSpec.id !== panelSpec.id) {
+      setPanelSpec(selectedPanelSpec);
+    }
+
     const unitsRes = unitsForBill(tariffPlan, billAmountInr, state.consumption?.billData?.sanctionedLoadKw);
     const monthlyKwh = unitsRes.units;
     const annualKwh = monthlyKwh * 12;
@@ -668,17 +703,31 @@ export function OptimizationProvider({
       tariffPlan,
     };
 
-    // Calculate how many panels will be placed
-    const panelKWp = panelSpec.ratedPowerW / 1000;
+    // Calculate how many panels will be placed using active module's wattage
+    const panelKWp = activeSpec.ratedPowerW / 1000;
     const performanceRatio = 0.78;
     const annualEnergyPerPanel = panelKWp * solarResourceKwhPerKwp * performanceRatio;
     const calculatedNeeded = Math.ceil(annualKwh / annualEnergyPerPanel);
-    const actualPlacingCount = Math.min(calculatedNeeded, maxPanelCount > 0 ? maxPanelCount : calculatedNeeded);
+
+    // Calculate maximum panels that fit with activeSpec's dimensions
+    let effectiveMaxPanels = maxPanelCount;
+    if (rooftop && solarAnalysis?.selectedArea) {
+      const testPanels = generateArrayPlacement(
+        rooftop,
+        solarAnalysis.selectedArea,
+        activeSpec,
+        { ...constraints, maxPanelCount: null },
+        solarAnalysis
+      );
+      effectiveMaxPanels = testPanels.length;
+    }
+
+    const actualPlacingCount = Math.min(calculatedNeeded, effectiveMaxPanels > 0 ? effectiveMaxPanels : calculatedNeeded);
 
     // Dynamic placing feedback
     setIsPlacing(true);
     setPlacingMessage(
-      `Placing ${actualPlacingCount} panels for ₹${billAmountInr.toLocaleString()}/month bill (~${monthlyKwh} units via ${tariffPlan.name}) in optimal solar zones...`
+      `Placing ${actualPlacingCount} × ${activeSpec.manufacturer} ${activeSpec.model} modules (${((actualPlacingCount * activeSpec.ratedPowerW) / 1000).toFixed(2)} kWp) for ₹${billAmountInr.toLocaleString()}/mo bill...`
     );
 
     dispatch({ type: 'SET_CONSUMPTION', payload: consumptionProfile });
@@ -698,7 +747,7 @@ export function OptimizationProvider({
       const candidateLayouts = generateCandidateLayouts(
         rooftop,
         solarAnalysis.selectedArea,
-        panelSpec,
+        activeSpec,
         constraints,
         solarAnalysis,
         consumptionProfile
@@ -715,11 +764,16 @@ export function OptimizationProvider({
       setIsPlacing(false);
       setPlacingMessage(null);
     }, 600);
-  }, [rooftop, solarAnalysis, panelSpec, constraints, solarResourceKwhPerKwp, maxPanelCount, tariffRateInr]);
+  }, [rooftop, solarAnalysis, panelSpec, constraints, solarResourceKwhPerKwp, maxPanelCount, tariffPlan, state.consumption?.billData?.sanctionedLoadKw]);
 
   // Set confirmed bill data from OCR review and place panels
   const setConfirmedBillData = useCallback(
-    (data: import('@/types/bill.js').ConfirmedBillData, fileName: string = 'bill_upload.jpg') => {
+    (data: import('@/types/bill.js').ConfirmedBillData, fileName: string = 'bill_upload.jpg', selectedPanelSpec?: PanelSpecification) => {
+      const activeSpec = selectedPanelSpec ?? panelSpec;
+      if (selectedPanelSpec && selectedPanelSpec.id !== panelSpec.id) {
+        setPanelSpec(selectedPanelSpec);
+      }
+
       const resolvedPlan = getTariffContext({ confirmedBillData: data });
       setTariffPlanState(resolvedPlan);
 
@@ -736,15 +790,28 @@ export function OptimizationProvider({
         billData: data,
       };
 
-      const panelKWp = panelSpec.ratedPowerW / 1000;
+      const panelKWp = activeSpec.ratedPowerW / 1000;
       const performanceRatio = 0.78;
       const annualEnergyPerPanel = panelKWp * solarResourceKwhPerKwp * performanceRatio;
       const calculatedNeeded = Math.ceil(data.annualKwh / annualEnergyPerPanel);
-      const actualPlacingCount = Math.min(calculatedNeeded, maxPanelCount > 0 ? maxPanelCount : calculatedNeeded);
+
+      let effectiveMaxPanels = maxPanelCount;
+      if (rooftop && solarAnalysis?.selectedArea) {
+        const testPanels = generateArrayPlacement(
+          rooftop,
+          solarAnalysis.selectedArea,
+          activeSpec,
+          { ...constraints, maxPanelCount: null },
+          solarAnalysis
+        );
+        effectiveMaxPanels = testPanels.length;
+      }
+
+      const actualPlacingCount = Math.min(calculatedNeeded, effectiveMaxPanels > 0 ? effectiveMaxPanels : calculatedNeeded);
 
       setIsPlacing(true);
       setPlacingMessage(
-        `Placing ${actualPlacingCount} panels for ${Math.round(data.monthlyAverageKwh).toLocaleString()} units/mo confirmed bill (${resolvedPlan.name}) in optimal solar zones...`
+        `Placing ${actualPlacingCount} × ${activeSpec.manufacturer} modules for ${Math.round(data.monthlyAverageKwh).toLocaleString()} units/mo confirmed bill in optimal solar zones...`
       );
 
       dispatch({ type: 'SET_CONSUMPTION', payload: consumptionProfile });
@@ -764,7 +831,7 @@ export function OptimizationProvider({
         const candidateLayouts = generateCandidateLayouts(
           rooftop,
           solarAnalysis.selectedArea,
-          panelSpec,
+          activeSpec,
           constraints,
           solarAnalysis,
           consumptionProfile
@@ -812,6 +879,8 @@ export function OptimizationProvider({
         maxPotentialAnnualEnergyKwh,
         solarResourceKwhPerKwp,
         estimatedAnnualEnergyKwh,
+        accurateSolarMetrics,
+        dynamicCostEstimation,
         isPlacing,
         placingMessage,
       }}

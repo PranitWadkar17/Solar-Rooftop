@@ -15,19 +15,52 @@ export type OptimizationToolMode = 'select' | 'delete' | 'move';
 
 // --- Panel Hardware Specification ---
 
+export type ManufacturerBrand = 'Tata Power Solar' | 'Vikram Solar' | 'Adani Solar' | string;
+
 export interface PanelSpecification {
   id: string;
-  manufacturer: string;
+  manufacturer: ManufacturerBrand;
   model: string;
   ratedPowerW: number;      // e.g. 550 W
   lengthM: number;          // e.g. 2.28 m
   widthM: number;           // e.g. 1.13 m
+  thicknessMm?: number;     // e.g. 35 mm
+  weightKg?: number;        // e.g. 28.5 kg
   efficiencyPct: number;    // e.g. 21.5 %
-  technology: string;       // e.g. 'TOPCon Bifacial', 'Mono-PERC', 'N-Type IBC'
+  technology: string;       // e.g. 'TOPCon Bifacial', 'Mono-PERC'
   tempCoeffPmax: number;    // e.g. -0.30 %/°C
   isDemo: boolean;
   source: string;
+  // Professional suitability & specifications
+  seriesName?: string;
+  cellType?: string;
+  bestIn?: string;
+  suits?: string;
+  whenToUse?: string;
+  roofLoadBearingKgPerSqM?: string; // e.g. "18 - 22 kg/m²"
+  windSpeedRatingKmh?: number;      // e.g. 180 km/h
+  dailyMinMaxKwh?: { min: number; max: number };
+  annualMinMaxKwh?: { min: number; max: number };
+  warrantyYearsProduct?: number;
+  warrantyYearsPerformance?: number;
+  bifacialGainPct?: number;
 }
+
+export interface ManufacturerProfile {
+  id: 'tata' | 'vikram' | 'adani';
+  brandName: 'Tata Power Solar' | 'Vikram Solar' | 'Adani Solar';
+  tagline: string;
+  badge: string;
+  accentColor: string;
+  overview: string;
+  bestIn: string[];
+  suitedFor: string[];
+  whenToUse: string;
+  certifications: string[];
+  warrantyHighlight: string;
+  models: PanelSpecification[];
+}
+
 
 // --- Individual Placed Panel Instance ---
 
