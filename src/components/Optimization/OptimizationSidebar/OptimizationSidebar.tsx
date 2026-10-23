@@ -24,6 +24,7 @@ export function OptimizationSidebar({
     panelSpec,
     constraints,
     reoptimize,
+    reoptimizeMultiAngle,
     finalizeLayout,
     consumption,
     tariffRateInr,
@@ -42,6 +43,8 @@ export function OptimizationSidebar({
   const [activeTab, setActiveTab] = useState<'design' | 'metrics' | 'inspector'>('design');
   const [consumptionInput, setConsumptionInput] = useState<string>('');
   const [consumptionError, setConsumptionError] = useState<string | null>(null);
+  const [readjustResult, setReadjustResult] = useState<import('@/services/panelOptimizationService.js').ReadjustResult | null>(null);
+  const [isReadjusting, setIsReadjusting] = useState(false);
 
   const mfgBadge = useMemo(() => {
     const m = panelSpec.manufacturer.toLowerCase();
@@ -690,7 +693,7 @@ export function OptimizationSidebar({
         )}
       </div>
 
-      {/* Toolbar for Undo, Redo, Compare */}
+      {/* Toolbar for Undo, Redo, Re-adjust, Compare */}
       <div className={styles.toolbar}>
         <button
           className={styles.toolBtn}
@@ -708,10 +711,57 @@ export function OptimizationSidebar({
         >
           ↪ Redo
         </button>
+        <button
+          className={`${styles.toolBtn} ${styles.readjustBtn}`}
+          disabled={isReadjusting || isPlacing}
+          onClick={() => {
+            setIsReadjusting(true);
+            setReadjustResult(null);
+            // Use setTimeout to allow UI to show loading state before heavy computation
+            setTimeout(() => {
+              try {
+                const result = reoptimizeMultiAngle();
+                setReadjustResult(result);
+              } finally {
+                setIsReadjusting(false);
+              }
+            }, 50);
+          }}
+          title="Search multiple angles & orientations for a better panel arrangement"
+        >
+          {isReadjusting ? '⏳ Re-adjusting...' : '🔄 Re-adjust'}
+        </button>
         <button className={styles.compareBtn} onClick={onOpenComparison} title="Compare Candidate Layouts">
           📊 Compare ({state.layouts.length})
         </button>
       </div>
+
+      {/* Re-adjust Result Banner */}
+      {readjustResult && (
+        <div className={readjustResult.improved ? styles.readjustSuccess : styles.readjustNoChange}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <strong style={{ fontSize: 12 }}>
+              {readjustResult.improved ? '✅ Layout Improved' : 'ℹ️ No Improvement Found'}
+            </strong>
+            <button
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', fontSize: 14, padding: '0 2px' }}
+              onClick={() => setReadjustResult(null)}
+              aria-label="Dismiss result"
+            >✕</button>
+          </div>
+          <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 6, lineHeight: 1.5 }}>
+            {readjustResult.improved ? (
+              <>
+                <div>Panels: <strong style={{ color: '#10b981' }}>{readjustResult.previousPanelCount} → {readjustResult.newPanelCount}</strong></div>
+                <div>Capacity: <strong style={{ color: '#10b981' }}>{readjustResult.previousCapacityKWp} → {readjustResult.newCapacityKWp} kWp</strong></div>
+              </>
+            ) : null}
+            <div style={{ marginTop: 4, color: '#64748b', fontSize: 10 }}>
+              Evaluated {readjustResult.candidatesEvaluated} candidate layouts
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Action Footer */}
       <div className={styles.footer}>

@@ -19,6 +19,8 @@ import {
   generateCandidateLayouts,
   generateArrayPlacement,
   DEFAULT_DESIGN_CONSTRAINTS,
+  optimizeLayoutMultiAngle,
+  type ReadjustResult,
 } from '@/services/panelOptimizationService';
 import { savePanelLayout, isLayoutOutdated } from '@/services/optimizationService';
 import { DEFAULT_PANEL_LIBRARY } from '@/data/panelLibrary';
@@ -252,6 +254,7 @@ interface OptimizationContextValue {
   changePanelSpec: (spec: PanelSpecification) => void;
   updateConstraints: (newConstraints: Partial<DesignConstraints>) => void;
   reoptimize: (objective?: OptimizationObjective) => void;
+  reoptimizeMultiAngle: () => ReadjustResult | null;
   finalizeLayout: () => void;
   setMonthlyConsumption: (monthlyKwh: number) => void;
   setMonthlyBillAmount: (billAmountInr: number, selectedPanelSpec?: PanelSpecification) => void;
@@ -359,6 +362,39 @@ export function OptimizationProvider({
     },
     [rooftop, solarAnalysis, panelSpec, constraints, state.consumption]
   );
+
+  /**
+   * Multi-angle optimizer: exhaustively searches azimuth angles, tilt angles,
+   * orientations, and row spacings to find the genuinely best panel arrangement.
+   * Returns the result metadata so the UI can present a before/after comparison.
+   * Applies the best layout automatically if it improves the current one.
+   */
+  const reoptimizeMultiAngle = useCallback((): ReadjustResult | null => {
+    if (!rooftop || !solarAnalysis?.selectedArea || !activeLayout) return null;
+
+    const result = optimizeLayoutMultiAngle(
+      rooftop,
+      solarAnalysis.selectedArea,
+      panelSpec,
+      constraints,
+      activeLayout,
+      solarAnalysis,
+    );
+
+    if (result.improved) {
+      // Replace the active layout with the optimized result.
+      // We reuse the current activeLayout.id so UPDATE_ACTIVE_LAYOUT can find
+      // and replace it in the layouts array (the reducer maps by id).
+      const layoutToApply: import('@/types/optimization.js').PanelLayout = {
+        ...result.bestLayout,
+        id: activeLayout.id,
+        name: `Re-adjusted: ${result.bestLayout.name}`,
+      };
+      dispatch({ type: 'UPDATE_ACTIVE_LAYOUT', payload: layoutToApply });
+    }
+
+    return result;
+  }, [rooftop, solarAnalysis, panelSpec, constraints, activeLayout]);
 
   // Initial layout generation on mount
   useEffect(() => {
@@ -869,6 +905,7 @@ export function OptimizationProvider({
         changePanelSpec,
         updateConstraints,
         reoptimize,
+        reoptimizeMultiAngle,
         finalizeLayout,
         setMonthlyConsumption,
         setMonthlyBillAmount,

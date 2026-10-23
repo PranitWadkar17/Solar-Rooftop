@@ -589,11 +589,11 @@ export function generateCandidateLayouts(
     ...constraints,
     orientation: 'portrait',
     azimuthDeg: 180,
-    tiltDeg: 20, // Increased from 18 for better performance
-    rowSpacingM: 1.0, // Increased from 0.8 for less shading
-    edgeClearanceM: 0.9, // Code compliant
-    obstacleClearanceM: 0.6, // Safety margin
-    panelSpacingM: 0.03, // Adequate module gap
+    tiltDeg: 20,
+    rowSpacingM: 1.0,
+    edgeClearanceM: 0.9,
+    obstacleClearanceM: 0.6,
+    panelSpacingM: 0.03,
   };
   const panelsGen = generateArrayPlacement(rooftop, selectedArea, panelSpec, constrGen, solarAnalysis);
   layouts.push(
@@ -618,10 +618,10 @@ export function generateCandidateLayouts(
     ...constraints,
     orientation: 'landscape',
     azimuthDeg: 180,
-    tiltDeg: 10, // Reduced from 12 for better packing
-    rowSpacingM: 0.7, // Minimum practical spacing
-    edgeClearanceM: 0.75, // Slightly reduced but safe
-    obstacleClearanceM: 0.5, // Minimum safe distance
+    tiltDeg: 10,
+    rowSpacingM: 0.7,
+    edgeClearanceM: 0.75,
+    obstacleClearanceM: 0.5,
     panelSpacingM: 0.02,
   };
   const panelsCap = generateArrayPlacement(rooftop, selectedArea, panelSpec, constrCap, solarAnalysis);
@@ -648,10 +648,10 @@ export function generateCandidateLayouts(
     orientation: 'portrait',
     azimuthDeg: 180,
     tiltDeg: 15,
-    rowSpacingM: 0.9, // Full walkway width
-    edgeClearanceM: 0.9, // Fire code compliant
-    obstacleClearanceM: 0.6, // Safe clearance
-    panelSpacingM: 0.03, // Adequate drainage gap
+    rowSpacingM: 0.9,
+    edgeClearanceM: 0.9,
+    obstacleClearanceM: 0.6,
+    panelSpacingM: 0.03,
   };
   const panelsBal = generateArrayPlacement(rooftop, selectedArea, panelSpec, constrBal, solarAnalysis);
   layouts.push(
@@ -669,15 +669,10 @@ export function generateCandidateLayouts(
   );
 
   // Layout D: Consumption-Optimized (Only if consumption data is available)
-  // - Generate only the number of panels needed for consumption
-  // - Use balanced constraints for practical installation
   if (consumption && consumption.annualKwh) {
-    // Calculate solar resource: peakSunHoursAnnual is essentially kWh/m²/year
-    // For PV systems, we convert this to kWh/kWp by considering typical system factors
-    // Standard assumption: 1 kWp system with optimal orientation yields ~peakSunHours × 365 kWh/year
     const solarResourceKwhPerKwp = solarAnalysis?.peakSunHoursAnnual
       ? solarAnalysis.peakSunHoursAnnual * 365
-      : 1450; // Default for moderate climate
+      : 1450;
 
     const requiredPanelCount = calculateRequiredPanelCount(
       consumption,
@@ -695,7 +690,7 @@ export function generateCandidateLayouts(
         edgeClearanceM: 0.9,
         obstacleClearanceM: 0.6,
         panelSpacingM: 0.03,
-        maxPanelCount: requiredPanelCount, // Limit to required count
+        maxPanelCount: requiredPanelCount,
       };
 
       const panelsConsumption = generateArrayPlacement(
@@ -723,4 +718,165 @@ export function generateCandidateLayouts(
   }
 
   return layouts;
+}
+
+// ============================================================
+// MULTI-ANGLE LAYOUT OPTIMIZER — Re-adjust Panels Engine
+// ============================================================
+
+export interface ReadjustResult {
+  bestLayout: PanelLayout;
+  previousPanelCount: number;
+  newPanelCount: number;
+  previousCapacityKWp: number;
+  newCapacityKWp: number;
+  candidatesEvaluated: number;
+  anglesSearched: number[];
+  improvementReason: string;
+  improved: boolean;
+}
+
+/**
+ * Generates and evaluates a comprehensive set of alternative panel arrangements
+ * by searching multiple azimuth angles, orientations, tilt angles, and row
+ * configurations. Returns the best candidate found.
+ *
+ * This is the engine behind the "Re-adjust Panels" button. It does NOT simply
+ * redraw the existing layout — it genuinely explores alternatives and compares
+ * them by panel count, capacity, solar quality, and code compliance.
+ *
+ * The existing layout is preserved if no better arrangement is found.
+ */
+export function optimizeLayoutMultiAngle(
+  rooftop: Rooftop,
+  selectedArea: SelectedSolarArea,
+  panelSpec: PanelSpecification,
+  baseConstraints: DesignConstraints,
+  currentLayout: PanelLayout,
+  solarAnalysis?: SolarAnalysis | null,
+): ReadjustResult {
+  const previousPanelCount = currentLayout.activePanelCount;
+  const previousCapacityKWp = currentLayout.systemCapacityKWp;
+
+  // --- Define search space ---
+
+  // Azimuth angles to try: center on roof orientation ± 90°
+  // and always include standard S/SE/SW orientations
+  const roofAzimuth = rooftop.orientation ?? 180;
+  const baseAzimuths = new Set<number>([
+    0, 45, 90, 135, 180, 225, 270, 315, // 8 compass directions
+    roofAzimuth, // roof's own principal axis
+    (roofAzimuth + 90) % 360, // perpendicular
+  ]);
+  // Add fine-grained sweep around each base azimuth
+  const candidateAzimuths: number[] = [];
+  for (const az of baseAzimuths) {
+    for (let offset = -15; offset <= 15; offset += 15) {
+      candidateAzimuths.push(((az + offset) % 360 + 360) % 360);
+    }
+  }
+  const uniqueAzimuths = [...new Set(candidateAzimuths)].sort((a, b) => a - b);
+
+  // Tilt angles (degrees): practical range for flat/low-pitched roofs
+  const tiltAngles = [5, 10, 15, 20, 25, 30];
+
+  // Orientations
+  const orientations: Array<'portrait' | 'landscape'> = ['portrait', 'landscape'];
+
+  // Row spacing variants (meeting code minimum walkway width)
+  const rowSpacings = [0.7, 0.9, 1.0, 1.2];
+
+  let bestLayout = currentLayout;
+  let bestScore = currentLayout.layoutScore;
+  let bestPanelCount = currentLayout.activePanelCount;
+  let candidatesEvaluated = 0;
+  const anglesSearched: number[] = [];
+
+  // --- Exhaustive search ---
+  for (const azimuth of uniqueAzimuths) {
+    for (const tilt of tiltAngles) {
+      for (const orientation of orientations) {
+        for (const rowSpacing of rowSpacings) {
+          const candidateConstraints: DesignConstraints = {
+            ...baseConstraints,
+            azimuthDeg: azimuth,
+            tiltDeg: tilt,
+            orientation,
+            rowSpacingM: rowSpacing,
+            edgeClearanceM: Math.max(0.75, baseConstraints.edgeClearanceM),
+            obstacleClearanceM: Math.max(0.5, baseConstraints.obstacleClearanceM),
+          };
+
+          const panels = generateArrayPlacement(
+            rooftop,
+            selectedArea,
+            panelSpec,
+            candidateConstraints,
+            solarAnalysis,
+          );
+
+          candidatesEvaluated++;
+
+          if (panels.length === 0) continue;
+
+          const layoutId = `readjust-az${azimuth}-t${tilt}-${orientation}-rs${rowSpacing}`;
+          const layoutName = `Re-adjust ${orientation.charAt(0).toUpperCase()}${orientation.slice(1)} ${azimuth}° T${tilt}°`;
+
+          const candidate = evaluateLayout(
+            layoutId,
+            layoutName,
+            'max_generation',
+            rooftop,
+            selectedArea,
+            panelSpec,
+            candidateConstraints,
+            panels,
+            solarAnalysis,
+          );
+
+          if (!candidate.validation.isValid) continue;
+
+          // Ranking: prioritize panel count first, then layoutScore for ties
+          const isBetter =
+            candidate.activePanelCount > bestPanelCount ||
+            (candidate.activePanelCount === bestPanelCount && candidate.layoutScore > bestScore);
+
+          if (isBetter) {
+            bestLayout = candidate;
+            bestScore = candidate.layoutScore;
+            bestPanelCount = candidate.activePanelCount;
+            if (!anglesSearched.includes(azimuth)) anglesSearched.push(azimuth);
+          }
+        }
+      }
+    }
+  }
+
+  const improved = bestLayout.id !== currentLayout.id;
+
+  let improvementReason: string;
+  if (!improved) {
+    improvementReason = 'No improvement found across all candidate configurations. The existing layout is optimal for this area.';
+  } else {
+    const panelDiff = bestLayout.activePanelCount - previousPanelCount;
+    const capDiff = (bestLayout.systemCapacityKWp - previousCapacityKWp).toFixed(2);
+    improvementReason =
+      `Found better arrangement at ${bestLayout.constraints.azimuthDeg}° azimuth, ` +
+      `${bestLayout.constraints.tiltDeg}° tilt, ${bestLayout.constraints.orientation} orientation. ` +
+      `Panel count: ${previousPanelCount} → ${bestLayout.activePanelCount} (${panelDiff >= 0 ? '+' : ''}${panelDiff}), ` +
+      `Capacity: ${previousCapacityKWp} → ${bestLayout.systemCapacityKWp} kWp (${Number(capDiff) >= 0 ? '+' : ''}${capDiff} kWp). ` +
+      `Evaluated ${candidatesEvaluated} candidate layouts.`;
+  }
+
+  return {
+    bestLayout,
+    previousPanelCount,
+    newPanelCount: bestLayout.activePanelCount,
+    previousCapacityKWp,
+    newCapacityKWp: bestLayout.systemCapacityKWp,
+    candidatesEvaluated,
+    anglesSearched,
+    improvementReason,
+    improved,
+  };
 }
