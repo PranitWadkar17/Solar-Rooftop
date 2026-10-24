@@ -1,6 +1,6 @@
 import type { ElectricityConsumptionProfile, MonthlyConsumption } from '@/types/index.js';
 import type { PanelLayout } from '@/types/optimization.js';
-import { getTariffContext, calculateSolarSavings, type SolarSavingsBreakdown, type TariffPlan } from './tariffService.js';
+import { getTariffContext, calculateSolarSavings } from './tariffService.js';
 
 export interface MonthlyEnergyPoint {
   month: string;
@@ -182,7 +182,7 @@ export function buildConsumptionComparison(
     };
   });
 
-  if (annualConsumptionKwh === null) {
+  if (!consumption || annualConsumptionKwh === null) {
     return {
       annualGenerationKwh,
       annualConsumptionKwh: null,

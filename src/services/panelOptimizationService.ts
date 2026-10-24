@@ -209,8 +209,180 @@ function isPanelCollidingWithObstacles(
   return false;
 }
 
+interface CandidateSlot {
+  u: number;
+  v: number;
+  geoCorners: [number, number][];
+  centroidLat: number;
+  centroidLng: number;
+  solarZone: 'High' | 'Medium' | 'Low' | 'Mixed';
+  solarAccessPct: number;
+  score: number;
+}
+
+interface PlacementScanConfig {
+  orientation: 'portrait' | 'landscape';
+  dimAlongRow: number;
+  groundProjectionCol: number;
+  stepU: number;
+  stepV: number;
+  edgeBufferM: number;
+  obstacleClearanceM: number;
+}
+
+function sampleSolarAtPoint(
+  centroidLng: number,
+  centroidLat: number,
+  solarAnalysis?: SolarAnalysis | null,
+): { solarZone: CandidateSlot['solarZone']; solarAccessPct: number; zoneScoreMultiplier: number } {
+  let solarZone: CandidateSlot['solarZone'] = 'High';
+  let solarAccessPct = 92;
+  let zoneScoreMultiplier = 3;
+
+  if (solarAnalysis?.zones && solarAnalysis.zones.length > 0) {
+    let matchedZone = false;
+    for (const zone of solarAnalysis.zones) {
+      if (isPointInPolygon([centroidLng, centroidLat], zone.polygon)) {
+        matchedZone = true;
+        solarAccessPct = zone.avgSolarAccessPct ?? 90;
+        if (zone.classification === 'HIGH') {
+          solarZone = 'High';
+          zoneScoreMultiplier = 3;
+        } else if (zone.classification === 'MEDIUM') {
+          solarZone = 'Medium';
+          zoneScoreMultiplier = 2;
+        } else {
+          solarZone = 'Low';
+          zoneScoreMultiplier = 1;
+        }
+        break;
+      }
+    }
+    if (!matchedZone) {
+      solarAccessPct = Math.round(solarAnalysis.avgSolarAccessPct ?? 90);
+      solarZone = solarAnalysis.overallClassification === 'HIGH' ? 'High' : 'Medium';
+      zoneScoreMultiplier = solarAnalysis.overallClassification === 'HIGH' ? 3 : 2;
+    }
+  } else if (solarAnalysis) {
+    solarAccessPct = Math.round(solarAnalysis.avgSolarAccessPct ?? 90);
+    solarZone = solarAnalysis.overallClassification === 'HIGH' ? 'High' : 'Medium';
+    zoneScoreMultiplier = solarAnalysis.overallClassification === 'HIGH' ? 3 : 2;
+  }
+
+  return { solarZone, solarAccessPct, zoneScoreMultiplier };
+}
+
+function scanSlotsForConfig(
+  config: PlacementScanConfig,
+  selectedBoundary: [number, number][],
+  roofBoundary: [number, number][] | null,
+  obstacles: Obstacle[],
+  centerLng: number,
+  centerLat: number,
+  metersPerDegLng: number,
+  metersPerDegLat: number,
+  cosR: number,
+  sinR: number,
+  solarAnalysis?: SolarAnalysis | null,
+): CandidateSlot[] {
+  const { dimAlongRow, groundProjectionCol, stepU, stepV, edgeBufferM, obstacleClearanceM } = config;
+  const hu = dimAlongRow / 2;
+  const hv = groundProjectionCol / 2;
+
+  // Project selected polygon into the array's local (u, v) meter frame so the
+  // grid is aligned to the polygon AABB rather than an arbitrary origin.
+  let minU = Infinity;
+  let maxU = -Infinity;
+  let minV = Infinity;
+  let maxV = -Infinity;
+  for (const [lng, lat] of selectedBoundary) {
+    const rotX = (lng - centerLng) * metersPerDegLng;
+    const rotY = (lat - centerLat) * metersPerDegLat;
+    const u = rotX * cosR + rotY * sinR;
+    const v = -rotX * sinR + rotY * cosR;
+    if (u < minU) minU = u;
+    if (u > maxU) maxU = u;
+    if (v < minV) minV = v;
+    if (v > maxV) maxV = v;
+  }
+
+  const spanU = Math.max(0, maxU - minU);
+  const spanV = Math.max(0, maxV - minV);
+  const adaptiveEdge = Math.min(
+    edgeBufferM,
+    Math.max(0.12, Math.min(spanU, spanV) * 0.08),
+  );
+
+  const startU = minU + adaptiveEdge + hu;
+  const startV = minV + adaptiveEdge + hv;
+  const endU = maxU - adaptiveEdge - hu;
+  const endV = maxV - adaptiveEdge - hv;
+
+  if (endU < startU || endV < startV) {
+    return [];
+  }
+
+  const toGeoCorners = (u: number, v: number): [number, number][] => {
+    const localCorners: [number, number][] = [
+      [u - hu, v - hv],
+      [u + hu, v - hv],
+      [u + hu, v + hv],
+      [u - hu, v + hv],
+    ];
+    return localCorners.map(([lu, lv]) => {
+      const rotX = lu * cosR - lv * sinR;
+      const rotY = lu * sinR + lv * cosR;
+      return [centerLng + rotX / metersPerDegLng, centerLat + rotY / metersPerDegLat];
+    });
+  };
+
+  const collectAtPhase = (offsetU: number, offsetV: number): CandidateSlot[] => {
+    const slots: CandidateSlot[] = [];
+    for (let v = startV + offsetV; v <= endV + 1e-6; v += stepV) {
+      for (let u = startU + offsetU; u <= endU + 1e-6; u += stepU) {
+        const geoCorners = toGeoCorners(u, v);
+        if (!isPanelInsidePolygon(geoCorners, selectedBoundary)) continue;
+        if (roofBoundary && roofBoundary.length >= 3 && !isPanelInsidePolygon(geoCorners, roofBoundary)) {
+          continue;
+        }
+        if (isPanelCollidingWithObstacles(geoCorners, obstacles, obstacleClearanceM)) continue;
+
+        const centroidLng = (geoCorners[0][0] + geoCorners[2][0]) / 2;
+        const centroidLat = (geoCorners[0][1] + geoCorners[2][1]) / 2;
+        const solar = sampleSolarAtPoint(centroidLng, centroidLat, solarAnalysis);
+        const distFromCenterM = Math.sqrt(u * u + v * v);
+        const score =
+          solar.zoneScoreMultiplier * 1000 + solar.solarAccessPct * 5 - distFromCenterM * 4;
+
+        slots.push({
+          u,
+          v,
+          geoCorners,
+          centroidLat,
+          centroidLng,
+          solarZone: solar.solarZone,
+          solarAccessPct: solar.solarAccessPct,
+          score,
+        });
+      }
+    }
+    return slots;
+  };
+
+  // Try origin-aligned grid and half-step phases; keep the densest packing.
+  const phases: CandidateSlot[][] = [
+    collectAtPhase(0, 0),
+    collectAtPhase(stepU / 2, 0),
+    collectAtPhase(0, stepV / 2),
+    collectAtPhase(stepU / 2, stepV / 2),
+  ];
+  phases.sort((a, b) => b.length - a.length);
+  return phases[0] ?? [];
+}
+
 /**
  * Packs photovoltaic modules inside the selected solar area using geometric ray-grid projection.
+ * Falls back to looser spacing / the opposite orientation if the primary constraints place nothing.
  */
 export function generateArrayPlacement(
   rooftop: Rooftop,
@@ -222,28 +394,10 @@ export function generateArrayPlacement(
   const roofBoundary = rooftop.geometry.coordinates[0] as [number, number][];
   const selectedBoundary = selectedArea.geometry.coordinates[0] as [number, number][];
 
-  // Determine physical module dimensions based on orientation
-  let dimAlongRow = panelSpec.widthM; // u-axis
-  let dimAlongCol = panelSpec.lengthM; // v-axis
-
-  if (constraints.orientation === 'landscape') {
-    dimAlongRow = panelSpec.lengthM;
-    dimAlongCol = panelSpec.widthM;
-  }
-
-  // Tilted module ground projection length
-  const tiltRad = (constraints.tiltDeg || 15) * DEG_TO_RAD;
-  const groundProjectionCol = dimAlongCol * Math.cos(tiltRad);
-
-  const stepU = dimAlongRow + constraints.panelSpacingM;
-  const stepV = groundProjectionCol + constraints.rowSpacingM;
-
-  // Find bounding box of selected area
   let minLng = 180;
   let maxLng = -180;
   let minLat = 90;
   let maxLat = -90;
-
   for (const [lng, lat] of selectedBoundary) {
     if (lng < minLng) minLng = lng;
     if (lng > maxLng) maxLng = lng;
@@ -253,146 +407,105 @@ export function generateArrayPlacement(
 
   const centerLat = (minLat + maxLat) / 2;
   const centerLng = (minLng + maxLng) / 2;
-
-  // Conversion constants
   const metersPerDegLat = EARTH_RADIUS * DEG_TO_RAD;
   const metersPerDegLng = metersPerDegLat * Math.cos(centerLat * DEG_TO_RAD);
 
-  // Rotation angle corresponding to azimuth (relative to East-West row alignment)
   const mountAzimuth = constraints.azimuthDeg ?? rooftop.orientation ?? 180;
   const rotationRad = (mountAzimuth - 180) * DEG_TO_RAD;
   const cosR = Math.cos(rotationRad);
   const sinR = Math.sin(rotationRad);
 
-  const widthM = (maxLng - minLng) * metersPerDegLng;
-  const heightM = (maxLat - minLat) * metersPerDegLat;
-  const maxSpanM = Math.sqrt(widthM * widthM + heightM * heightM) * 1.2;
+  const tiltRad = (constraints.tiltDeg || 15) * DEG_TO_RAD;
+  const primaryOrientation: 'portrait' | 'landscape' =
+    constraints.orientation === 'landscape' ? 'landscape' : 'portrait';
+  const altOrientation: 'portrait' | 'landscape' =
+    primaryOrientation === 'portrait' ? 'landscape' : 'portrait';
 
-  interface CandidateSlot {
-    u: number;
-    v: number;
-    geoCorners: [number, number][];
-    centroidLat: number;
-    centroidLng: number;
-    solarZone: 'High' | 'Medium' | 'Low' | 'Mixed';
-    solarAccessPct: number;
-    score: number;
-  }
+  const makeConfig = (
+    orientation: 'portrait' | 'landscape',
+    rowSpacingM: number,
+    edgeClearanceM: number,
+    panelSpacingM: number,
+    obstacleClearanceM: number,
+  ): PlacementScanConfig => {
+    const dimAlongRow = orientation === 'landscape' ? panelSpec.lengthM : panelSpec.widthM;
+    const dimAlongCol = orientation === 'landscape' ? panelSpec.widthM : panelSpec.lengthM;
+    const groundProjectionCol = dimAlongCol * Math.cos(tiltRad);
+    return {
+      orientation,
+      dimAlongRow,
+      groundProjectionCol,
+      stepU: dimAlongRow + panelSpacingM,
+      stepV: groundProjectionCol + rowSpacingM,
+      edgeBufferM: edgeClearanceM,
+      obstacleClearanceM,
+    };
+  };
 
-  const candidateSlots: CandidateSlot[] = [];
+  const attempts: PlacementScanConfig[] = [
+    makeConfig(
+      primaryOrientation,
+      constraints.rowSpacingM,
+      constraints.edgeClearanceM,
+      constraints.panelSpacingM,
+      constraints.obstacleClearanceM,
+    ),
+    makeConfig(
+      altOrientation,
+      constraints.rowSpacingM,
+      constraints.edgeClearanceM,
+      constraints.panelSpacingM,
+      constraints.obstacleClearanceM,
+    ),
+    makeConfig(primaryOrientation, 0.45, 0.25, Math.min(0.02, constraints.panelSpacingM), 0.3),
+    makeConfig(altOrientation, 0.35, 0.15, 0.02, 0.2),
+  ];
 
-  // Inset selected boundary by edge clearance
-  const edgeBuffer = Math.max(0.2, constraints.edgeClearanceM);
+  const selectedIsInsideRoof =
+    roofBoundary &&
+    roofBoundary.length >= 3 &&
+    selectedBoundary.every((pt) => isPointInPolygon(pt, roofBoundary));
 
-  // 1. Grid scan over span to find all physically valid candidate module locations
-  for (let v = -maxSpanM / 2 + edgeBuffer; v <= maxSpanM / 2 - edgeBuffer; v += stepV) {
-    for (let u = -maxSpanM / 2 + edgeBuffer; u <= maxSpanM / 2 - edgeBuffer; u += stepU) {
-      // Half-dimensions of module
-      const hu = dimAlongRow / 2;
-      const hv = groundProjectionCol / 2;
+  let candidateSlots: CandidateSlot[] = [];
+  let usedConfig = attempts[0];
 
-      // 4 corners in local rotated frame (meters relative to center)
-      const localCorners: [number, number][] = [
-        [u - hu, v - hv],
-        [u + hu, v - hv],
-        [u + hu, v + hv],
-        [u - hu, v + hv],
-      ];
-
-      // Transform local (u, v) meters -> world [lng, lat]
-      const geoCorners: [number, number][] = localCorners.map(([lu, lv]) => {
-        const rotX = lu * cosR - lv * sinR;
-        const rotY = lu * sinR + lv * cosR;
-        const lng = centerLng + rotX / metersPerDegLng;
-        const lat = centerLat + rotY / metersPerDegLat;
-        return [lng, lat];
-      });
-
-      // Strict containment check inside selected solar area and roof boundary
-      if (!isPanelInsidePolygon(geoCorners, selectedBoundary)) {
-        continue;
-      }
-      if (!isPanelInsidePolygon(geoCorners, roofBoundary)) {
-        continue;
-      }
-
-      // Obstacle collision check
-      if (isPanelCollidingWithObstacles(geoCorners, rooftop.obstacles, constraints.obstacleClearanceM)) {
-        continue;
-      }
-
-      // Panel centroid
-      const centroidLng = (geoCorners[0][0] + geoCorners[2][0]) / 2;
-      const centroidLat = (geoCorners[0][1] + geoCorners[2][1]) / 2;
-
-      // Dynamically sample solar potential from solar analysis zones
-      let solarZone: 'High' | 'Medium' | 'Low' | 'Mixed' = 'High';
-      let solarAccessPct = 92;
-      let zoneScoreMultiplier = 3;
-
-      if (solarAnalysis?.zones && solarAnalysis.zones.length > 0) {
-        let matchedZone = false;
-        for (const zone of solarAnalysis.zones) {
-          if (isPointInPolygon([centroidLng, centroidLat], zone.polygon)) {
-            matchedZone = true;
-            solarAccessPct = zone.avgSolarAccessPct ?? 90;
-            if (zone.classification === 'HIGH') {
-              solarZone = 'High';
-              zoneScoreMultiplier = 3;
-            } else if (zone.classification === 'MEDIUM') {
-              solarZone = 'Medium';
-              zoneScoreMultiplier = 2;
-            } else {
-              solarZone = 'Low';
-              zoneScoreMultiplier = 1;
-            }
-            break;
-          }
-        }
-        if (!matchedZone) {
-          solarAccessPct = Math.round(solarAnalysis.avgSolarAccessPct ?? 90);
-          solarZone = solarAnalysis.overallClassification === 'HIGH' ? 'High' : 'Medium';
-          zoneScoreMultiplier = solarAnalysis.overallClassification === 'HIGH' ? 3 : 2;
-        }
-      } else if (solarAnalysis) {
-        solarAccessPct = Math.round(solarAnalysis.avgSolarAccessPct ?? 90);
-        solarZone = solarAnalysis.overallClassification === 'HIGH' ? 'High' : 'Medium';
-        zoneScoreMultiplier = solarAnalysis.overallClassification === 'HIGH' ? 3 : 2;
-      }
-
-      // Proximity to center of area for clean, contiguous cluster layout (avoid random scattered placement)
-      const distFromCenterM = Math.sqrt(u * u + v * v);
-      const score = (zoneScoreMultiplier * 1000) + (solarAccessPct * 5) - (distFromCenterM * 4);
-
-      candidateSlots.push({
-        u,
-        v,
-        geoCorners,
-        centroidLat,
-        centroidLng,
-        solarZone,
-        solarAccessPct,
-        score,
-      });
+  for (const attempt of attempts) {
+    const slots = scanSlotsForConfig(
+      attempt,
+      selectedBoundary,
+      selectedIsInsideRoof ? roofBoundary : null,
+      rooftop.obstacles ?? [],
+      centerLng,
+      centerLat,
+      metersPerDegLng,
+      metersPerDegLat,
+      cosR,
+      sinR,
+      solarAnalysis,
+    );
+    if (slots.length > candidateSlots.length) {
+      candidateSlots = slots;
+      usedConfig = attempt;
+    }
+    if (candidateSlots.length > 0 && attempt === attempts[0]) {
+      break;
+    }
+    if (candidateSlots.length > 0 && attempt !== attempts[0]) {
+      break;
     }
   }
 
-  // 2. Select panels: if maxPanelCount is specified (e.g. for consumption-based layout),
-  // pick the highest-solar-yield and best-clustered slots rather than arbitrary/random row truncations
   let selectedSlots: CandidateSlot[] = [];
 
   if (constraints.maxPanelCount && constraints.maxPanelCount > 0 && constraints.maxPanelCount < candidateSlots.length) {
-    // Sort descending by score to pick the best spots
     const ranked = [...candidateSlots].sort((a, b) => b.score - a.score);
     const topSlots = ranked.slice(0, constraints.maxPanelCount);
-    // Sort chosen slots into orderly rows (v descending, u ascending) for neat array alignment
     selectedSlots = topSlots.sort((a, b) => {
       const vDiff = b.v - a.v;
       if (Math.abs(vDiff) > 0.05) return vDiff;
       return a.u - b.u;
     });
   } else {
-    // Keep all candidate slots sorted neatly by rows
     selectedSlots = [...candidateSlots].sort((a, b) => {
       const vDiff = b.v - a.v;
       if (Math.abs(vDiff) > 0.05) return vDiff;
@@ -400,8 +513,9 @@ export function generateArrayPlacement(
     });
   }
 
-  // 3. Construct PanelInstance array
-  const panels: PanelInstance[] = selectedSlots.map((slot, idx) => {
+  const usedOrientation = usedConfig.orientation;
+
+  return selectedSlots.map((slot, idx) => {
     const panelGeo: GeoJSON.Polygon = {
       type: 'Polygon',
       coordinates: [[...slot.geoCorners, slot.geoCorners[0]]],
@@ -413,7 +527,7 @@ export function generateArrayPlacement(
       index: idx + 1,
       geometry: panelGeo,
       centroid: { lat: slot.centroidLat, lng: slot.centroidLng },
-      orientation: constraints.orientation === 'landscape' ? 'landscape' : 'portrait',
+      orientation: usedOrientation,
       lengthM: panelSpec.lengthM,
       widthM: panelSpec.widthM,
       tiltDeg: constraints.tiltDeg,
@@ -426,8 +540,45 @@ export function generateArrayPlacement(
       isDeleted: false,
     };
   });
+}
 
-  return panels;
+/**
+ * Returns the existing layout when it already has placed modules; otherwise
+ * generates a packed array from the selected rooftop area, panel size, spacing, and obstacles.
+ */
+export function ensurePlacedLayout(
+  rooftop: Rooftop | null,
+  solarAnalysis: SolarAnalysis | null,
+  layout: PanelLayout | null,
+  panelSpec: PanelSpecification,
+  constraints: DesignConstraints = DEFAULT_DESIGN_CONSTRAINTS,
+): PanelLayout | null {
+  if (layout && layout.activePanelCount > 0 && layout.panels.some((p) => !p.isDeleted)) {
+    return layout;
+  }
+  if (!rooftop || !solarAnalysis?.selectedArea) {
+    return layout;
+  }
+
+  const panels = generateArrayPlacement(
+    rooftop,
+    solarAnalysis.selectedArea,
+    layout?.panelSpec ?? panelSpec,
+    layout?.constraints ?? constraints,
+    solarAnalysis,
+  );
+
+  return evaluateLayout(
+    layout?.id ?? 'layout-report',
+    layout?.name ?? 'Report Array Layout',
+    layout?.objective ?? 'max_capacity',
+    rooftop,
+    solarAnalysis.selectedArea,
+    layout?.panelSpec ?? panelSpec,
+    layout?.constraints ?? constraints,
+    panels,
+    solarAnalysis,
+  );
 }
 
 /**

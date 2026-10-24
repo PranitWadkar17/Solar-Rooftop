@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { normalizeBillText } from '../billParser';
-import { computeCostBreakdown, computePayback, computeYearlyProjection, computeSubsidy } from '../solarReportService';
+import { computeCostBreakdown, computePayback, computeYearlyProjection, computeSubsidy, generateSolarReport, toGrossShareRows } from '../solarReportService';
 import { SOLAR_CONFIG } from '@/data/solarConfig';
 
 describe('normalizeBillText', () => {
@@ -51,6 +51,42 @@ describe('computeCostBreakdown', () => {
     expect(computeSubsidy(3)).toBe(78000);
     expect(computeSubsidy(5)).toBe(78000); // capped at 78000
     expect(computeSubsidy(1.5)).toBe(45000); // interpolated
+  });
+
+  it('gross-share rows include GST and sum to 100% of gross cost', () => {
+    const bd = computeCostBreakdown(3.24);
+    const rows = toGrossShareRows(bd);
+    const amountSum = rows.reduce((s, r) => s + r.amountInr, 0);
+    const pctSum = rows.reduce((s, r) => s + r.sharePercent, 0);
+    expect(amountSum).toBe(bd.grossCostInr);
+    expect(pctSum).toBe(100);
+    expect(bd.netCostInr).toBe(bd.grossCostInr - bd.subsidyInr);
+  });
+});
+
+describe('generateSolarReport', () => {
+  it('sizes DC capacity from actual panel count and wattage', () => {
+    const report = generateSolarReport({
+      monthlyConsumptionKwh: Array(12).fill(200),
+      maxPanelsFit: 6,
+      panelWattage: 540,
+      roofAreaM2: 40,
+    });
+    expect(report.systemKw).toBe(3.24);
+    expect(report.costBreakdown.systemKw).toBe(3.24);
+    expect(report.annualGenerationKwh).toBeGreaterThan(0);
+    expect(report.paybackYears).toBeGreaterThan(0);
+  });
+
+  it('does not invent a 1 kW system when no panels fit', () => {
+    const report = generateSolarReport({
+      monthlyConsumptionKwh: Array(12).fill(300),
+      maxPanelsFit: 0,
+      roofAreaM2: 0,
+      panelWattage: 540,
+    });
+    // falls back to consumption-based kW, not a hardcoded 1.0
+    expect(report.systemKw).not.toBe(1);
   });
 });
 

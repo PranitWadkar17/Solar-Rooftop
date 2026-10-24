@@ -1,10 +1,10 @@
 // TariffPanel.tsx – UI for selecting or editing a tariff plan
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useOptimization } from '@/context/OptimizationContext';
 import {
   STANDARD_TARIFF_PLANS,
-  TariffPlan,
-  LEGACY_FALLBACK_TARIFF,
+  type TariffPlan,
+
 } from '@/services/tariffService';
 import styles from './TariffPanel.module.css';
 

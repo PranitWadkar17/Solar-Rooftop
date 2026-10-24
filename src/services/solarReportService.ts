@@ -27,6 +27,8 @@ export interface SolarReportInput {
   tariffContext?: TariffContextInput;
   /** Sanctioned load in kW — used as a soft cap for system sizing. */
   sanctionedLoadKw?: number | null;
+  /** Location-specific annual yield (kWh / kWp / year). Falls back to SOLAR_CONFIG. */
+  annualYieldKwhPerKw?: number | null;
 }
 
 /** One line in the cost breakdown table. */
@@ -137,6 +139,43 @@ export function computeCostBreakdown(systemKw: number): CostBreakdown {
   };
 }
 
+function allocatePercents(amounts: number[], total: number): number[] {
+  if (total <= 0 || amounts.length === 0) return amounts.map(() => 0);
+  const raw = amounts.map((a) => (a / total) * 100);
+  const floors = raw.map((r) => Math.floor(r));
+  let remainder = 100 - floors.reduce((s, n) => s + n, 0);
+  const order = raw
+    .map((r, i) => ({ i, frac: r - floors[i] }))
+    .sort((a, b) => b.frac - a.frac);
+  let idx = 0;
+  while (remainder > 0 && order.length > 0) {
+    floors[order[idx % order.length].i] += 1;
+    remainder -= 1;
+    idx += 1;
+  }
+  return floors;
+}
+
+/**
+ * Equipment components plus GST, with percentage shares of the GST-inclusive gross total.
+ * Shares are integer-allocated so they always sum to 100%.
+ */
+export function toGrossShareRows(breakdown: CostBreakdown): CostLineItem[] {
+  const rows: CostLineItem[] = [
+    ...breakdown.components,
+    {
+      label: `GST (${Math.round(breakdown.gstRate * 100)}%)`,
+      amountInr: breakdown.gstInr,
+      sharePercent: 0,
+    },
+  ];
+  const percents = allocatePercents(
+    rows.map((r) => r.amountInr),
+    breakdown.grossCostInr,
+  );
+  return rows.map((r, i) => ({ ...r, sharePercent: percents[i] }));
+}
+
 /**
  * Computes 25-year cumulative savings projection considering:
  * - Electricity tariff escalation rate (+3% / year)
@@ -214,32 +253,33 @@ export function generateSolarReport(input: SolarReportInput): SolarReport {
 
   const annualConsumptionKwh = monthlyConsumption12.reduce((a, b) => a + b, 0);
 
-  // 2. Determine System Sizing
-  // Base required capacity to meet 100% of consumption
-  const requiredKw = (annualConsumptionKwh) / SOLAR_CONFIG.yieldKwhPerKwPerYear;
+  const wattage = input.panelWattage ?? 540;
+  const yieldKwhPerKw =
+    input.annualYieldKwhPerKw && input.annualYieldKwhPerKw > 0
+      ? input.annualYieldKwhPerKw
+      : SOLAR_CONFIG.yieldKwhPerKwPerYear;
 
-  // Roof constraint capping
-  let maxKwFromRoof: number | null = null;
+  // 2. Determine System Sizing from the actual placed array when available.
+  // Do not invent a 1 kW floor when no modules fit — keep every report metric
+  // consistent with panel count × wattage.
+  let panelCount = 0;
   if (input.maxPanelsFit && input.maxPanelsFit > 0) {
-    const wattage = input.panelWattage ?? 540;
-    maxKwFromRoof = (input.maxPanelsFit * wattage) / 1000;
+    panelCount = input.maxPanelsFit;
   } else if (input.roofAreaM2 && input.roofAreaM2 > 0) {
-    const panelArea = input.panelAreaM2 ?? 2.5;
-    const wattage = input.panelWattage ?? 540;
-    const fitCount = Math.floor(input.roofAreaM2 / panelArea);
-    maxKwFromRoof = (fitCount * wattage) / 1000;
+    const panelFootprint = (input.panelAreaM2 ?? 2.5) * 1.2;
+    panelCount = Math.max(0, Math.floor(input.roofAreaM2 / panelFootprint));
   }
 
-  let cappedKw = requiredKw;
-  if (maxKwFromRoof !== null && maxKwFromRoof > 0) {
-    cappedKw = Math.min(requiredKw, maxKwFromRoof);
+  let systemKw: number;
+  if (panelCount > 0) {
+    systemKw = Math.round(((panelCount * wattage) / 1000) * 100) / 100;
+  } else {
+    const requiredKw = annualConsumptionKwh / yieldKwhPerKw;
+    systemKw = Math.max(0, Math.round(requiredKw * 100) / 100);
   }
-
-  // Round to nearest 0.5 kW with a minimum of 1.0 kW
-  let systemKw = Math.max(1.0, Math.round(cappedKw * 2) / 2);
 
   // 3. Generation Estimation
-  const annualGenerationKwh = Math.round(systemKw * SOLAR_CONFIG.yieldKwhPerKwPerYear);
+  const annualGenerationKwh = Math.round(systemKw * yieldKwhPerKw);
   const monthlyGenerationKwh = Array.from({ length: 12 }, () =>
     Math.round(annualGenerationKwh / 12)
   );
@@ -272,7 +312,7 @@ export function generateSolarReport(input: SolarReportInput): SolarReport {
   const co2OffsetKgPerYear = Math.round(annualGenerationKwh * SOLAR_CONFIG.co2KgPerKwh);
 
   const assumptions: Record<string, string | number> = {
-    'Annual Solar Yield': `${SOLAR_CONFIG.yieldKwhPerKwPerYear} kWh / kWp / year`,
+    'Annual Solar Yield': `${yieldKwhPerKw} kWh / kWp / year`,
     'Electricity Tariff Escalation': `${SOLAR_CONFIG.tariffEscalationRate * 100}% per year`,
     'Solar Panel Degradation': `${SOLAR_CONFIG.panelDegradationRate * 100}% per year`,
     'GST on Equipment': `${SOLAR_CONFIG.gstRate * 100}%`,

@@ -1,185 +1,276 @@
 .container {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
-  padding: 1.25rem;
+  gap: 1.75rem;
+  padding: 2rem;
   background: var(--surface-card, #ffffff);
-  border: 1px solid var(--border-subtle, #e5e7eb);
-  border-radius: 1rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  border-radius: 1.25rem;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
+  max-width: 960px;
+  margin: 0 auto;
 }
 
-.headerRow {
+/* 1. Heading & Subheading */
+.headingContainer {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.35rem;
+  border-bottom: 2px solid var(--border-subtle, #e2e8f0);
+  padding-bottom: 1.25rem;
+}
+
+.reportMainHeading {
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: var(--text-primary, #0f172a);
+  letter-spacing: -0.03em;
+  margin: 0;
+  line-height: 1.15;
+  text-align: center;
+  width: 100%;
+}
+
+.reportSubheading {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #2563eb;
+  letter-spacing: -0.01em;
+  margin: 0;
+  text-align: center;
+  width: 100%;
+}
+
+.reportMeta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   gap: 1rem;
+  font-size: 0.82rem;
+  color: var(--text-secondary, #64748b);
+  margin-top: 0.25rem;
   flex-wrap: wrap;
 }
 
-.titleArea {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.mainTitle {
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: var(--text-primary, #111827);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin: 0;
-}
-
-.subtitle {
-  font-size: 0.85rem;
-  color: var(--text-secondary, #6b7280);
-  margin: 0;
-}
-
-.downloadBtn {
+.metaItem {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
-  color: #ffffff;
-  padding: 0.55rem 1.1rem;
-  border-radius: 0.6rem;
-  font-size: 0.85rem;
-  font-weight: 600;
-  border: none;
-  cursor: pointer;
-  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.25);
-  transition: all 0.2s ease;
+  gap: 0.35rem;
 }
 
-.downloadBtn:hover {
-  background: linear-gradient(135deg, #1d4ed8, #1e40af);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 6px rgba(37, 99, 235, 0.35);
-}
-
-/* Card 1: Bill Summary Banner */
-.billSummaryCard {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 0.75rem;
-  padding: 0.85rem 1rem;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-  gap: 0.75rem;
+/* Section Header */
+.sectionHeader {
+  display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.85rem;
 }
 
-.summaryItem {
+.sectionTitle {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary, #0f172a);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+/* 2. Rooftop Visualization Section */
+.vizSection {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
 }
 
-.itemLabel {
-  font-size: 0.72rem;
+/* 3. Panel Information Section */
+.panelInfoSection {
+  display: flex;
+  flex-direction: column;
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.infoCard {
+  background: var(--surface-ground, #f8fafc);
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.infoCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.infoLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #64748b;
-  font-weight: 600;
+  color: var(--text-secondary, #64748b);
 }
 
-.itemValue {
-  font-size: 0.95rem;
+.infoValue {
+  font-size: 1.05rem;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-primary, #0f172a);
 }
 
-.badgeExtracted {
-  display: inline-flex;
+/* 4. Energy Details Section */
+.energySection {
+  display: flex;
+  flex-direction: column;
+}
+
+.energyList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.energyRow {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 0.3rem;
-  background: #dcfce7;
-  color: #166534;
-  font-size: 0.72rem;
-  font-weight: 600;
-  padding: 0.15rem 0.5rem;
-  border-radius: 9999px;
-  width: fit-content;
-}
-
-.badgeDerived {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  background: #fef3c7;
-  color: #92400e;
-  font-size: 0.72rem;
-  font-weight: 600;
-  padding: 0.15rem 0.5rem;
-  border-radius: 9999px;
-  width: fit-content;
-}
-
-/* Card 2 & 3: Stats Grid */
-.statsGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 0.75rem;
-}
-
-.statCard {
-  background: var(--surface-ground, #ffffff);
-  border: 1px solid var(--border-subtle, #f1f5f9);
+  padding: 0.95rem 1.25rem;
+  background: var(--surface-ground, #f8fafc);
+  border: 1px solid var(--border-subtle, #e2e8f0);
   border-radius: 0.75rem;
-  padding: 0.9rem;
+  gap: 1rem;
+}
+
+.energyRowKey {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  gap: 0.2rem;
 }
 
-.statCardHighlight {
-  border-color: #3b82f6;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.03), rgba(37, 99, 235, 0.08));
-}
-
-.statTitle {
-  font-size: 0.75rem;
-  color: var(--text-secondary, #6b7280);
-  font-weight: 500;
-}
-
-.statNumber {
-  font-size: 1.35rem;
-  font-weight: 800;
-  color: var(--text-primary, #111827);
-  letter-spacing: -0.02em;
-}
-
-.statSub {
-  font-size: 0.72rem;
-  color: var(--text-tertiary, #9ca3af);
-}
-
-/* Card 4: Cost Breakdown */
-.costSection {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.sectionHeader {
+.energyRowName {
   font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary, #1e293b);
+}
+
+.energyRowDesc {
+  font-size: 0.78rem;
+  color: var(--text-tertiary, #64748b);
+}
+
+.energyRowVal {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #047857;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.capacityHighlight {
+  color: #2563eb;
+}
+
+.conclusionCard {
+  margin-top: 0.5rem;
+  padding: 1.1rem 1.25rem;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(6, 182, 212, 0.06));
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.conclusionTitle {
+  font-size: 0.85rem;
   font-weight: 700;
-  color: #1e293b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #065f46;
   display: flex;
   align-items: center;
   gap: 0.4rem;
 }
 
-.costChartAndTable {
+.conclusionText {
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: #0f172a;
+  margin: 0;
+}
+
+/* 5. Financial Details Section */
+.financialSection {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1rem;
+}
+
+.financialGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.finCard {
+  background: var(--surface-ground, #f8fafc);
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  border-radius: 0.85rem;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.finCardHighlight {
+  border-color: #2563eb;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.04), rgba(59, 130, 246, 0.08));
+}
+
+.finCardGreen {
+  border-color: #10b981;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.04), rgba(16, 185, 129, 0.08));
+}
+
+.finLabel {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary, #64748b);
+}
+
+.finAmount {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--text-primary, #0f172a);
+  letter-spacing: -0.02em;
+}
+
+.finSub {
+  font-size: 0.8rem;
+  color: var(--text-tertiary, #64748b);
+}
+
+/* Cost Breakdown Table */
+.costDetailsCard {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.85rem;
+  padding: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
 }
 
 .costProgressBar {
@@ -199,12 +290,12 @@
 .costTable {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.8rem;
+  font-size: 0.84rem;
 }
 
 .costTable th {
   text-align: left;
-  padding: 0.4rem 0.5rem;
+  padding: 0.5rem 0.6rem;
   background: #f8fafc;
   color: #64748b;
   font-weight: 600;
@@ -212,13 +303,9 @@
 }
 
 .costTable td {
-  padding: 0.45rem 0.5rem;
+  padding: 0.5rem 0.6rem;
   border-bottom: 1px solid #f1f5f9;
   color: #334155;
-}
-
-.costTable tr:last-child td {
-  border-bottom: none;
 }
 
 .totalRow {
@@ -232,34 +319,153 @@
 }
 
 .netRow {
-  font-size: 0.88rem;
+  font-size: 0.92rem;
   font-weight: 800;
   background: #eff6ff;
   color: #1e40af !important;
 }
 
-/* Card 5: 25-Year Projection Chart */
+/* 25-Year Projection Chart */
 .chartContainer {
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 0.75rem;
-  padding: 0.85rem;
+  border-radius: 0.85rem;
+  padding: 1.1rem;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.75rem;
 }
 
 .svgChart {
   width: 100%;
-  height: 160px;
+  height: 150px;
   overflow: visible;
 }
 
-/* Disclaimer */
+/* 6. PDF Download Button Section (At the Bottom) */
+.downloadSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding-top: 1.25rem;
+  border-top: 2px solid var(--border-subtle, #e2e8f0);
+}
+
+.downloadPdfBottomBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #ffffff;
+  font-size: 1.05rem;
+  font-weight: 700;
+  padding: 0.9rem 2.25rem;
+  border-radius: 0.75rem;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+  transition: all 0.2s ease;
+}
+
+.downloadPdfBottomBtn:hover {
+  background: linear-gradient(135deg, #1d4ed8, #1e40af);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.45);
+}
+
+.downloadPdfBottomBtn:active {
+  transform: translateY(0);
+}
+
 .disclaimerText {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   color: #94a3b8;
+  text-align: center;
   font-style: italic;
   margin: 0;
-  line-height: 1.4;
+  max-width: 650px;
+  line-height: 1.45;
+}
+
+/* Dark mode adjustments */
+:global([data-theme='night']) .container,
+:global([data-theme='dark']) .container {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+:global([data-theme='night']) .reportMainHeading,
+:global([data-theme='dark']) .reportMainHeading {
+  color: #f8fafc;
+}
+
+:global([data-theme='night']) .sectionTitle,
+:global([data-theme='dark']) .sectionTitle {
+  color: #f8fafc;
+}
+
+:global([data-theme='night']) .infoCard,
+:global([data-theme='dark']) .infoCard,
+:global([data-theme='night']) .energyRow,
+:global([data-theme='dark']) .energyRow,
+:global([data-theme='night']) .finCard,
+:global([data-theme='dark']) .finCard,
+:global([data-theme='night']) .costDetailsCard,
+:global([data-theme='dark']) .costDetailsCard,
+:global([data-theme='night']) .chartContainer,
+:global([data-theme='dark']) .chartContainer {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+:global([data-theme='night']) .infoValue,
+:global([data-theme='dark']) .infoValue,
+:global([data-theme='night']) .energyRowName,
+:global([data-theme='dark']) .energyRowName,
+:global([data-theme='night']) .finAmount,
+:global([data-theme='dark']) .finAmount {
+  color: #f8fafc;
+}
+
+:global([data-theme='night']) .conclusionCard,
+:global([data-theme='dark']) .conclusionCard {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.35);
+}
+
+:global([data-theme='night']) .conclusionText,
+:global([data-theme='dark']) .conclusionText {
+  color: #e2e8f0;
+}
+
+:global([data-theme='night']) .conclusionTitle,
+:global([data-theme='dark']) .conclusionTitle {
+  color: #34d399;
+}
+
+:global([data-theme='night']) .costTable th,
+:global([data-theme='dark']) .costTable th {
+  background: #1e293b;
+  color: #94a3b8;
+  border-bottom-color: #334155;
+}
+
+:global([data-theme='night']) .costTable td,
+:global([data-theme='dark']) .costTable td {
+  border-bottom-color: #1e293b;
+  color: #cbd5e1;
+}
+
+:global([data-theme='night']) .totalRow,
+:global([data-theme='dark']) .totalRow {
+  background: #1e293b;
+}
+
+:global([data-theme='night']) .netRow,
+:global([data-theme='dark']) .netRow {
+  background: rgba(30, 64, 175, 0.3);
+  color: #93c5fd !important;
 }
